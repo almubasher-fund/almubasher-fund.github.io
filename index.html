@@ -204,6 +204,8 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:14px;color:var(--ink2)}
 .spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--gold);animation:rot 1s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
+.sbx{position:sticky;top:0;z-index:45;background:#2D5B7A;color:#fff;font-weight:700;font-size:12.5px;padding:9px 12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.sbx button{border:none;background:#fff;color:#2D5B7A;border-radius:14px;padding:4px 12px;font-weight:800;font-size:12px}
 .demo-bar{position:fixed;top:8px;left:8px;z-index:70;display:flex;gap:4px;background:#000a;padding:4px;border-radius:20px}
 .demo-bar button{border:none;border-radius:16px;padding:4px 10px;font-size:11px;background:#fff3;color:#fff}
 .demo-bar button.on{background:var(--goldL);color:#000}
@@ -331,6 +333,8 @@ let AUDIT = [];
 let SYNC = 'off';
 let fs = null, auth = null, unsubs = [];
 let ledgerFilter = 'all', ledgerPeriod = 'all';
+let SANDBOX = false;
+const SITE_URL = 'https://almubasher-fund.github.io';
 
 /* ================= DOMAIN ================= */
 const IN_TYPES = {opening: 1, contribution: 1, maturity: 1};
@@ -528,7 +532,7 @@ function listenAdmin() {
 async function persist(action, detail, extra) {
   assignRanks(DB);
   DB.updatedAt = Date.now();
-  if (DEMO) { AUDIT.push({at: Date.now(), action, detail}); return; }
+  if (DEMO || SANDBOX) { AUDIT.push({at: Date.now(), action, detail}); return; }
   const data = clone(DB);
   const b = fs.batch();
   b.set(fs.doc('fund/main'), data);
@@ -543,7 +547,7 @@ async function mutate(fn, action, extra) {
   let detail;
   try { detail = fn(DB); } catch (e) { DB = backup; toast(e.message, true); return false; }
   render();
-  try { await persist(action, detail, extra); toast('تم الحفظ ✓'); return true; }
+  try { await persist(action, detail, extra); toast(SANDBOX ? '🧪 تجربة — لم يُحفظ' : 'تم الحفظ ✓'); return true; }
   catch (e) { DB = backup; render(); toast('تعذّر الحفظ: ' + (e.message || e), true); return false; }
 }
 
@@ -617,6 +621,7 @@ function render() {
   else if (TAB === 'invest') body = investBody(c);
   else body = moreBody();
   app.innerHTML = (TAB === 'home' ? heroHTML(S, MODE === 'admin' ? 'المدير' : 'عضو') : miniHero()) + `<div class="wrap">${body}</div>` + navHTML() + (MODE === 'admin' ? '<button class="fab" id="fab" aria-label="إضافة">+</button>' : '');
+  if (SANDBOX) app.insertAdjacentHTML('afterbegin', '<div class="sbx">🧪 وضع التجربة: لا شيء يُحفظ ولا يراه أحد <button onclick="location.reload()">خروج</button></div>');
   wireMain(c);
   requestAnimationFrame(() => $$('.bar>i[data-w]').forEach(b => b.style.width = b.dataset.w + '%'));
   window.scrollTo(0, y);
@@ -830,6 +835,7 @@ function moreBody() {
   h += `</div>${targetsSection()}`;
   if (MODE === 'admin') {
     h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>لوحة المدير</h2></div>
+    ${menu('sandbox', '🧪', 'وضع التجربة', 'جرّب أي شي بدون ما ينحفظ')}
     ${menu('code', '🔑', 'رمز دخول العائلة', 'الرمز الحالي: ' + DB.settings.familyCode + ' — غيّره أو أرسله')}
     ${menu('backup', '💾', 'نسخة احتياطية', 'تنزيل كل البيانات في ملف تحفظه عندك')}
     ${menu('excel', '📊', 'تصدير Excel', 'الأفراد والحركات والاستثمارات')}
@@ -1092,6 +1098,7 @@ function statement(m, x, entries) {
 function menuAction(k) {
   if (k === 'mlogout') { try { localStorage.removeItem(LS_CODE); } catch (e) {} DB = null; TAB = 'home'; listenGuest(); return; }
   if (k === 'logout') { if (DEMO) return; auth.signOut(); DB = null; TAB = 'home'; startViewer(); return; }
+  if (k === 'sandbox') return confirmSheet('وضع التجربة', 'تقدر تضيف وتستثمر وتقفل وتصحح بحرية — <b>ولا شيء يُحفظ</b> ولا يشوفه أحد. للخروج: زر "خروج" أو أعد تحميل الصفحة وترجع البيانات الحقيقية.', 'ابدأ التجربة', () => { SANDBOX = true; stopListeners(); DB = clone(DB); render(); toast('🧪 دخلت وضع التجربة'); });
   if (k === 'code') return formCode();
   if (k === 'backup') { const name = `صندوق-آل-مبشر-نسخة-${todayISO()}.json`; download(name, JSON.stringify({kind: 'mubasher-fund-backup', at: Date.now(), db: DB}, null, 1), 'application/json'); toast('تم تنزيل النسخة ✓'); return; }
   if (k === 'excel') return exportExcel();
@@ -1110,7 +1117,7 @@ function formCode() {
   <button class="btn block" style="margin-top:10px" id="share">💬 إرسال الرمز للقروب</button>
   <div class="sec"><div class="f"><label>رمز جديد (8 أرقام)</label><input class="inp code-inp" id="n" inputmode="numeric" maxlength="8" placeholder="••••••••"></div>
   <div class="small muted" style="margin-bottom:10px">الرمز القديم يتوقف فورًا، وكل الأعضاء يُطلب منهم الجديد مرة واحدة.</div><button class="btn bad block" id="ok">تغيير الرمز</button></div>`, (b, close) => {
-    $('#share', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم 🌿\nرمز الدخول لصندوق آل مبشر بن عبدالله: ${code}\nافتح الصفحة واضغط "دخول أفراد العائلة" واكتب الرمز مرة واحدة فقط.`), '_blank');
+    $('#share', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم 🌿\nرمز الدخول لصندوق آل مبشر بن عبدالله: ${code}\nافتح الرابط: ${SITE_URL}\nواضغط "دخول أفراد العائلة" واكتب الرمز مرة واحدة فقط.`), '_blank');
     $('#ok', b).onclick = async () => {
       const n = $('#n', b).value.trim();
       if (!/^\d{8}$/.test(n)) return toast('الرمز لازم يكون 8 أرقام', true);
