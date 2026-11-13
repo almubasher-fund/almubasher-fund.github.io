@@ -206,6 +206,20 @@ input,select,textarea{font-family:inherit;font-size:15px}
 @keyframes rot{to{transform:rotate(360deg)}}
 .sbx{position:sticky;top:0;z-index:45;background:#2D5B7A;color:#fff;font-weight:700;font-size:12.5px;padding:9px 12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
 .sbx button{border:none;background:#fff;color:#2D5B7A;border-radius:14px;padding:4px 12px;font-weight:800;font-size:12px}
+.pre{white-space:pre-wrap;font-size:13.5px;line-height:1.9;word-break:break-word}
+.meet-sec{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.meet-sec>b{font-family:'Cairo';font-size:12.5px;color:var(--gold2);display:block;margin-bottom:2px}
+.dec{font-size:13px;padding:2px 0}
+.sug.hid{opacity:.55}
+.av{width:34px;height:34px;border-radius:50%;background:var(--green);color:var(--goldL);display:flex;align-items:center;justify-content:center;font-family:'Cairo';font-weight:800;flex:0 0 auto}
+.reply{background:var(--bg2);border-radius:10px;padding:8px 10px;font-size:12.5px;margin-top:8px}
+.sug-f{display:flex;align-items:center;gap:8px;margin-top:10px}
+.like{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:4px 12px;font-size:12.5px;font-family:'Cairo';font-weight:700;color:var(--ink)}
+.like.on{background:var(--goodBg);border-color:var(--good);color:var(--good)}
+.nav button{position:relative}
+.nbadge{position:absolute;top:6px;right:calc(50% - 22px);background:var(--bad);color:#fff;border-radius:10px;font-size:9.5px;padding:0 5px;font-style:normal;min-width:16px;line-height:16px}
+textarea.inp{resize:vertical;line-height:1.8}
+.cardbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:right;color:inherit;font:inherit}
 .demo-bar{position:fixed;top:8px;left:8px;z-index:70;display:flex;gap:4px;background:#000a;padding:4px;border-radius:20px}
 .demo-bar button{border:none;border-radius:16px;padding:4px 10px;font-size:11px;background:#fff3;color:#fff}
 .demo-bar button.on{background:var(--goldL);color:#000}
@@ -334,6 +348,15 @@ let SYNC = 'off';
 let fs = null, auth = null, unsubs = [];
 let ledgerFilter = 'all', ledgerPeriod = 'all';
 let SANDBOX = false;
+let SUGG = [], PINS = {}, sugUnsub = null, sugCode = null;
+const LS_BIND = 'mubasher_bind_v1';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+const isoOf = ts => { const d = new Date(ts); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+function fmtTime(t) { if (!t) return ''; let [h, m] = t.split(':').map(Number); const pm = h >= 12; h = h % 12 || 12; return `${arD(h)}:${arD(String(m).padStart(2, '0'))} ${pm ? 'م' : 'ص'}`; }
+const rand4 = () => { let v; do { v = String(crypto.getRandomValues(new Uint16Array(1))[0] % 10000).padStart(4, '0'); } while (/^(\d)\1{3}$/.test(v) || '0123456789'.includes(v) || '9876543210'.includes(v)); return v; };
+const myUid = () => DEMO || SANDBOX ? 'me' : (auth && auth.currentUser ? auth.currentUser.uid : null);
+const nextMeeting = db => (db.meetings || []).filter(m => m.status !== 'done').sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0];
 const SITE_URL = 'https://almubasher-fund.github.io';
 
 /* ================= DOMAIN ================= */
@@ -499,11 +522,17 @@ function initFB() {
   try { auth = firebase.auth(); } catch (e) { auth = null; BOOT_ERR = 'Auth: ' + e.message; }
   return true;
 }
-function stopListeners() { unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs = []; }
+function stopListeners() { unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs = []; if (sugUnsub) { try { sugUnsub(); } catch (e) {} sugUnsub = null; } sugCode = null; }
+function listenSugg(code) {
+  if (DEMO || !fs || !code || sugCode === code) return;
+  if (sugUnsub) { try { sugUnsub(); } catch (e) {} }
+  sugCode = code;
+  sugUnsub = fs.collection('members/' + code + '/suggestions').onSnapshot(s => { SUGG = s.docs.map(d => Object.assign({id: d.id}, d.data())); if (MODE === 'member' || MODE === 'admin') render(); }, () => {});
+}
 function setSync(s) { SYNC = s; const el = $('#sync'); if (el) { el.className = 'sync ' + s; $('span', el).textContent = s === 'on' ? 'متصل · تحديث مباشر' : s === 'off' ? 'غير متصل' : 'جاري الاتصال'; } }
 
 function listenGuest() {
-  stopListeners(); MODE = 'guest'; SYNC = 'wait'; render();
+  stopListeners(); MODE = 'guest'; SUGG = []; SYNC = 'wait'; render();
   if (DEMO) { PUB = buildPublic(DB); render(); return; }
   unsubs.push(fs.doc('public/summary').onSnapshot(s => { PUB = s.exists ? s.data() : null; setSync('on'); render(); }, err => { setSync('off'); render(); }));
 }
@@ -514,7 +543,7 @@ function listenMember(code, fromInput) {
     const u = fs.doc('members/' + code).onSnapshot(s => {
       if (!s.exists) { try { localStorage.removeItem(LS_CODE); } catch (e) {} if (fromInput) res(false); else { toast('تغيّر رمز الدخول، اطلب الرمز الجديد', true); listenGuest(); } return; }
       try { localStorage.setItem(LS_CODE, code); } catch (e) {}
-      DB = s.data().db; MODE = 'member'; setSync('on'); render(); res(true);
+      DB = s.data().db; MODE = 'member'; setSync('on'); listenSugg(code); render(); res(true);
     }, err => { setSync('off'); res(false); });
     unsubs.push(u);
   });
@@ -524,8 +553,9 @@ function listenAdmin() {
   unsubs.push(fs.doc('fund/main').onSnapshot(s => {
     setSync('on');
     if (!s.exists) { DB = null; MODE = 'setup'; render(); return; }
-    DB = s.data(); MODE = 'admin'; render();
+    DB = s.data(); MODE = 'admin'; listenSugg(DB.settings.familyCode); render();
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
+  unsubs.push(fs.collection('pins').onSnapshot(s => { PINS = {}; s.docs.forEach(d => PINS[d.id] = d.data().pin); }, () => {}));
   unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
 }
 
@@ -619,6 +649,7 @@ function render() {
   else if (TAB === 'members') body = membersBody(c);
   else if (TAB === 'ledger') body = ledgerBody();
   else if (TAB === 'invest') body = investBody(c);
+  else if (TAB === 'council') body = councilBody();
   else body = moreBody();
   app.innerHTML = (TAB === 'home' ? heroHTML(S, MODE === 'admin' ? 'المدير' : 'عضو') : miniHero()) + `<div class="wrap">${body}</div>` + navHTML() + (MODE === 'admin' ? '<button class="fab" id="fab" aria-label="إضافة">+</button>' : '');
   if (SANDBOX) app.insertAdjacentHTML('afterbegin', '<div class="sbx">🧪 وضع التجربة: لا شيء يُحفظ ولا يراه أحد <button onclick="location.reload()">خروج</button></div>');
@@ -643,12 +674,13 @@ function heroHTML(S, role) {
   </div></header>`;
 }
 function miniHero() {
-  const t = {members: 'أفراد الصندوق', ledger: 'الحركات المالية', invest: 'الاستثمارات', more: MODE === 'admin' ? 'الإدارة والمزيد' : 'المزيد'}[TAB];
+  const t = {council: 'المجلس', members: 'أفراد الصندوق', ledger: 'الحركات المالية', invest: 'الاستثمارات', more: MODE === 'admin' ? 'الإدارة والمزيد' : 'المزيد'}[TAB];
   return `<header class="hero" style="padding-bottom:20px"><div class="wrap"><div class="topbar"><span class="role-chip">${MODE === 'admin' ? 'المدير' : 'عضو'}</span><div class="sync ${SYNC}" id="sync"><i></i><span>${SYNC === 'on' ? 'متصل · تحديث مباشر' : 'غير متصل'}</span></div></div><h1 class="title" style="font-size:26px;margin-top:10px">${t}</h1></div></header>`;
 }
 function navHTML() {
-  const items = [['home', '🏛️', 'الرئيسية'], ['members', '👥', 'الأفراد'], ['ledger', '📜', 'الحركات'], ['invest', '📈', 'الاستثمار'], ['more', MODE === 'admin' ? '⚙️' : '☰', MODE === 'admin' ? 'الإدارة' : 'المزيد']];
-  return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}</button>`).join('')}</div></nav>`;
+  const items = [['home', '🏛️', 'الرئيسية'], ['members', '👥', 'الأفراد'], ['ledger', '📜', 'الحركات'], ['invest', '📈', 'الاستثمار'], ['council', '🗣️', 'المجلس'], ['more', MODE === 'admin' ? '⚙️' : '☰', MODE === 'admin' ? 'الإدارة' : 'المزيد']];
+  const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'new').length : 0;
+  return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}${k === 'council' && nNew ? `<i class="nbadge">${arD(nNew)}</i>` : ''}</button>`).join('')}</div></nav>`;
 }
 
 /* ---- guest ---- */
@@ -695,6 +727,10 @@ function homeBody(S, c) {
     <div class="kpi"><div class="v num">${arD(done)}</div><div class="l">أكملوا المستهدف</div></div>
     <div class="kpi"><div class="v num">${fmt(c.profit)}</div><div class="l">أرباح محققة</div></div></div>`;
   if (openP) h += `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🗓️</span><div style="flex:1"><b>${esc(openP.name)}</b><div class="small muted">${fmtH(openP.start)} ← ${fmtH(openP.end)}</div></div><span class="pill blue">مفتوحة</span></div>`;
+  const nm = nextMeeting(DB);
+  if (nm) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗣️</span><div style="flex:1"><b>الاجتماع القادم: ${esc(nm.title)}</b><div class="small muted">${fmtH(nm.date)}${nm.time ? ' · ' + fmtTime(nm.time) : ''}${nm.place ? ' · ' + esc(nm.place) : ''}</div></div><span class="muted">‹</span></button>`;
+  const nNew = SUGG.filter(x => x.status === 'new' && !x.hidden).length;
+  if (nNew) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">💬</span><div style="flex:1"><b>${arD(nNew)} ${MODE === 'admin' ? 'مقترح جديد بانتظار ردك' : 'مقترح جديد من العائلة'}</b></div><span class="muted">‹</span></button>`;
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${lineChart(S.growth)}</div></div>`;
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>آخر الحركات</h2><button class="lnk" data-go="ledger" style="margin-inline-start:auto">عرض الكل ←</button></div><div class="card" style="padding:0">${recent.map(ledgerRow).join('') || '<div class="empty">لا حركات</div>'}</div></div>`;
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المتصدرون</h2><button class="lnk" data-go="members" style="margin-inline-start:auto">كل الأفراد ←</button></div>${ms.slice(0, 3).map(m => memCard(m, c)).join('')}</div>`;
@@ -820,6 +856,207 @@ function investBody(c) {
   return h + '</div>';
 }
 
+/* ---- council: meetings & suggestions ---- */
+const SST = {new: ['جديد', 'blue'], review: ['تحت الدراسة', 'mid'], accepted: ['اعتُمد ✓', 'done'], rejected: ['لم يُعتمد', 'early']};
+function sugAuthor(s) { if (s.byAdmin) return 'أمين الصندوق'; if (s.anon || !s.memberId) return 'عضو (بدون اسم)'; return memName(DB, s.memberId); }
+function councilBody() {
+  const ms = DB.meetings || [];
+  const up = ms.filter(m => m.status !== 'done').sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  const done = ms.filter(m => m.status === 'done').sort((a, b) => b.date.localeCompare(a.date));
+  let h = `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الاجتماع القادم</h2></div>`;
+  h += up.length ? up.map(meetCard).join('') : '<div class="empty">لا يوجد اجتماع مجدول</div>';
+  if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:10px" id="newMeet">＋ جدولة اجتماع</button>`;
+  h += '</div>';
+  const list = SUGG.filter(s => MODE === 'admin' || !s.hidden).sort((a, b) => (b.at || 0) - (a.at || 0));
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المقترحات والآراء</h2><span class="cnt">${arD(list.length)}</span></div>
+  <button class="btn gold block" id="newSug">✍️ أضف مقترحًا أو رأيًا</button><div style="height:10px"></div>`;
+  h += list.length ? list.map(sugCard).join('') : '<div class="empty">لا توجد مقترحات بعد — كن أول من يقترح</div>';
+  h += '</div>';
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>أرشيف الاجتماعات</h2><span class="cnt">${arD(done.length)}</span></div>` + (done.length ? done.map(meetCard).join('') : '<div class="empty">لا توجد محاضر بعد</div>') + '</div>';
+  return h;
+}
+function meetCard(m) {
+  const isDone = m.status === 'done';
+  const days = Math.round((new Date(m.date + 'T12:00:00Z') - new Date(todayISO() + 'T12:00:00Z')) / 864e5);
+  const when = days === 0 ? 'اليوم' : days === 1 ? 'غدًا' : days > 1 ? `بعد ${arD(days)} يوم` : 'مضى موعده';
+  const att = m.attendees || [];
+  return `<div class="card"><div style="display:flex;align-items:center;gap:8px"><b style="font-family:Cairo;flex:1">${esc(m.title || 'اجتماع الصندوق')}</b>${isDone ? '<span class="pill gray">مُنعقد</span>' : `<span class="pill blue">${when}</span>`}</div>
+  <div class="small muted" style="margin-top:4px">🗓️ ${dateBoth(m.date)}${m.time ? ' · 🕰️ ' + fmtTime(m.time) : ''}${m.place ? '<br>📍 ' + esc(m.place) : ''}</div>
+  ${m.agenda ? `<div class="meet-sec"><b>جدول الأعمال</b><div class="pre">${esc(m.agenda)}</div></div>` : ''}
+  ${isDone && (m.decisions || []).length ? `<div class="meet-sec"><b>القرارات</b>${m.decisions.map(d => `<div class="dec">✓ ${esc(d)}</div>`).join('')}</div>` : ''}
+  ${isDone && m.notes ? `<div class="meet-sec"><b>ملخص النقاش</b><div class="pre">${esc(m.notes)}</div></div>` : ''}
+  ${isDone && att.length ? `<div class="meet-sec"><b>الحضور (${arD(att.length)})</b><div class="small muted">${att.map(id => esc(memName(DB, id))).join('، ')}</div></div>` : ''}
+  ${MODE === 'admin' ? `<div class="btn-row" style="margin-top:10px"><button class="btn${isDone ? ' ghost' : ''}" data-mmin="${m.id}">📝 ${isDone ? 'تعديل المحضر' : 'تسجيل المحضر'}</button>${isDone ? '' : `<button class="btn ghost" data-medit="${m.id}" style="flex:0 0 auto">✏️</button>`}<button class="btn ghost" data-mdel="${m.id}" style="flex:0 0 auto">🗑️</button></div>` : ''}</div>`;
+}
+function sugCard(s) {
+  const st = SST[s.status] || SST.new, likes = Object.keys(s.likes || {}).length, me = myUid(), mine = me && (s.likes || {})[me];
+  const nm = sugAuthor(s);
+  return `<div class="card sug ${s.hidden ? 'hid' : ''}"><div style="display:flex;align-items:center;gap:8px"><span class="av">${s.anon ? '؟' : esc(nm.slice(0, 1))}</span><div style="flex:1;min-width:0"><b>${esc(nm)}</b><div class="small muted">${s.at ? fmtH(isoOf(s.at)) : ''}</div></div><span class="pill ${st[1]}">${st[0]}</span></div>
+  <div class="pre" style="margin-top:8px">${esc(s.text)}</div>
+  ${s.reply ? `<div class="reply"><b>رد أمين الصندوق:</b> ${esc(s.reply)}</div>` : ''}
+  <div class="sug-f"><button class="like ${mine ? 'on' : ''}" data-like="${s.id}">👍 ${arD(likes)}</button>${s.hidden ? '<span class="small" style="color:var(--bad)">مخفي عن الأعضاء</span>' : ''}${MODE === 'admin' ? `<button class="lnk" data-sadm="${s.id}" style="margin-inline-start:auto">إدارة ←</button>` : ''}</div></div>`;
+}
+async function ensureAnon() {
+  if (!auth) throw new Error('تسجيل الدخول غير متاح');
+  if (!auth.currentUser) await auth.signInAnonymously();
+  return auth.currentUser.uid;
+}
+function sugErr(e) {
+  const c = (e && (e.code || '')) + ' ' + (e && e.message || '');
+  if (/admin-restricted|operation-not-allowed/.test(c)) return 'ميزة المقترحات لم تُفعَّل بعد من أمين الصندوق';
+  if (/permission/.test(c)) return 'غير مسموح — تأكد من رقمك';
+  return 'تعذّر: ' + (e && e.message || e);
+}
+function formSuggestion() {
+  if (MODE === 'admin') {
+    return sheet('مقترح من أمين الصندوق', `<div class="f"><label>النص</label><textarea class="inp" id="t" rows="5" maxlength="1000"></textarea></div><button class="btn gold block" id="ok">نشر</button>`, (b, close) => {
+      $('#ok', b).onclick = async () => {
+        const text = $('#t', b).value.trim(); if (!text) return;
+        const doc = {text, anon: false, memberId: null, byAdmin: true, status: 'new', likes: {}, at: Date.now()};
+        if (DEMO || SANDBOX) { SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); return; }
+        try { doc.uid = auth.currentUser.uid; await fs.collection(`members/${sugCode}/suggestions`).add(doc); close(); toast('تم النشر ✓'); } catch (e) { toast(sugErr(e), true); }
+      };
+    });
+  }
+  const bound = lsGet(LS_BIND);
+  sheet('مقترح أو رأي', `<div class="f"><label>اكتب مقترحك أو رأيك</label><textarea class="inp" id="t" rows="5" maxlength="1000" placeholder="مثال: أقترح نخصص جزء من الأرباح لـ…"></textarea></div>
+  <div class="f"><label>كيف ينشر؟</label>
+   <label class="part"><input type="radio" name="who" value="named" checked><span class="n">باسمي</span></label>
+   <label class="part"><input type="radio" name="who" value="anon"><span class="n">بدون اسم<small>لا يظهر اسمك لأحد</small></span></label></div>
+  <div id="namedBox"><div class="f"><label>اسمك</label><select class="inp" id="m"><option value="">— اختر اسمك —</option>${memberOptions(DB, bound)}</select></div>
+   <div class="f" id="pinBox"><label>رقمك السري (٤ أرقام)</label><input class="inp code-inp" id="p" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" style="font-size:22px;letter-spacing:6px"><div class="small muted">يرسله لك أمين الصندوق في الخاص. تكتبه مرة واحدة فقط.</div></div></div>
+  <div id="err" class="small" style="color:var(--bad);min-height:20px"></div>
+  <button class="btn gold block" id="ok">نشر</button>`, (b, close) => {
+    let forcePin = false;
+    const upd = () => {
+      const anon = $('input[name=who]:checked', b).value === 'anon';
+      $('#namedBox', b).classList.toggle('hidden', anon);
+      $('#pinBox', b).classList.toggle('hidden', !forcePin && !!bound && $('#m', b).value === bound);
+    };
+    $$('input[name=who]', b).forEach(r => r.onchange = upd); $('#m', b).onchange = upd; upd();
+    const err = t => $('#err', b).textContent = t;
+    $('#ok', b).onclick = async () => {
+      const text = $('#t', b).value.trim(); if (!text) return err('اكتب المقترح');
+      const anon = $('input[name=who]:checked', b).value === 'anon', mid = $('#m', b).value;
+      if (!anon && !mid) return err('اختر اسمك');
+      const needPin = !anon && (forcePin || lsGet(LS_BIND) !== mid);
+      const pin = $('#p', b).value.trim();
+      if (needPin && !/^\d{4}$/.test(pin)) return err('اكتب رقمك السري (٤ أرقام)');
+      const doc = {text, anon, memberId: anon ? null : mid, status: 'new', likes: {}, at: Date.now()};
+      $('#ok', b).disabled = true; err('');
+      if (DEMO || SANDBOX) { if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); } if (!anon) lsSet(LS_BIND, mid); SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('تم النشر ✓'); return; }
+      try {
+        const u = await ensureAnon(); doc.uid = u;
+        if (needPin) {
+          try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); lsSet(LS_BIND, mid); }
+          catch (e) { $('#ok', b).disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
+        }
+        await fs.collection(`members/${sugCode}/suggestions`).add(doc);
+        close(); toast('تم النشر ✓ شكرًا لك');
+      } catch (e) {
+        $('#ok', b).disabled = false;
+        if (!anon && /permission/.test(e.code || e.message)) { lsSet(LS_BIND, null); forcePin = true; upd(); return err('رقمك تغيّر — اكتب الرقم الجديد'); }
+        err(sugErr(e));
+      }
+    };
+  });
+}
+async function toggleLike(id) {
+  const s = SUGG.find(x => x.id === id); if (!s) return;
+  if (DEMO || SANDBOX) { s.likes = s.likes || {}; if (s.likes.me) delete s.likes.me; else s.likes.me = true; render(); return; }
+  try { const u = await ensureAnon(); await fs.doc(`members/${sugCode}/suggestions/${id}`).update({['likes.' + u]: (s.likes || {})[u] ? firebase.firestore.FieldValue.delete() : true}); }
+  catch (e) { toast(sugErr(e), true); }
+}
+async function sugUpdate(id, patch) {
+  if (DEMO || SANDBOX) { Object.assign(SUGG.find(x => x.id === id), patch); render(); return; }
+  try { await fs.doc(`members/${sugCode}/suggestions/${id}`).update(patch); toast('تم ✓'); } catch (e) { toast(sugErr(e), true); }
+}
+async function sugDelete(id) {
+  if (DEMO || SANDBOX) { SUGG = SUGG.filter(x => x.id !== id); render(); return; }
+  try { await fs.doc(`members/${sugCode}/suggestions/${id}`).delete(); toast('تم الحذف'); } catch (e) { toast(sugErr(e), true); }
+}
+function sugAdmin(id) {
+  const s = SUGG.find(x => x.id === id); if (!s) return;
+  sheet('إدارة المقترح', `<div class="card pre">${esc(s.text)}</div><div class="small muted" style="margin:6px 0 12px">${esc(sugAuthor(s))}${s.at ? ' · ' + fmtH(isoOf(s.at)) : ''}</div>
+  <div class="f"><label>الحالة</label><select class="inp" id="st">${Object.entries(SST).map(([k, v]) => `<option value="${k}" ${s.status === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></div>
+  <div class="f"><label>ردك (يظهر للأعضاء)</label><textarea class="inp" id="r" rows="3">${esc(s.reply || '')}</textarea></div>
+  <label class="part"><input type="checkbox" id="h" ${s.hidden ? 'checked' : ''}><span class="n">إخفاؤه عن الأعضاء</span></label><div style="height:10px"></div>
+  <button class="btn gold block" id="ok">حفظ</button>
+  <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="toMeet">📌 لجدول الاجتماع القادم</button><button class="btn bad" id="del" style="flex:0 0 auto">حذف</button></div>`, (b, close) => {
+    $('#ok', b).onclick = async () => { await sugUpdate(id, {status: $('#st', b).value, reply: $('#r', b).value.trim(), hidden: $('#h', b).checked}); close(); };
+    $('#del', b).onclick = () => { close(); confirmSheet('حذف المقترح', 'سيُحذف نهائيًا. متأكد؟', 'حذف', () => sugDelete(id), true); };
+    $('#toMeet', b).onclick = async () => {
+      const up = nextMeeting(DB); if (!up) return toast('لا يوجد اجتماع قادم — جدول اجتماعًا أولًا', true);
+      close();
+      if (await mutate(db => { const m = db.meetings.find(x => x.id === up.id); m.agenda = (m.agenda ? m.agenda + '\n' : '') + '• مقترح (' + sugAuthor(s) + '): ' + s.text.slice(0, 200); return 'إضافة مقترح لجدول: ' + m.title; }, 'اجتماع')) sugUpdate(id, {status: 'review'});
+    };
+  });
+}
+function formMeeting(id) {
+  const m = id ? DB.meetings.find(x => x.id === id) : null;
+  sheet(m ? 'تعديل الاجتماع' : 'جدولة اجتماع', `<div class="f"><label>العنوان</label><input class="inp" id="t" value="${esc(m ? m.title : 'اجتماع الصندوق')}"></div>
+  <div class="f"><label>التاريخ (هجري)</label>${hInput('d', m ? m.date : addDays(todayISO(), 7))}</div>
+  <div class="grid2"><div class="f"><label>الوقت</label><input class="inp" id="tm" type="time" value="${m ? m.time || '' : '20:00'}"></div><div class="f"><label>المكان</label><input class="inp" id="pl" value="${esc(m ? m.place || '' : '')}" placeholder="مثال: مجلس أبو علي"></div></div>
+  <div class="f"><label>جدول الأعمال</label><textarea class="inp" id="ag" rows="4" placeholder="بند في كل سطر">${esc(m ? m.agenda || '' : '')}</textarea></div>
+  <button class="btn gold block" id="ok">حفظ</button>${m ? '' : '<button class="btn ghost block" style="margin-top:8px" id="okwa">حفظ وإرسال الدعوة للقروب 💬</button>'}`, (b, close) => {
+    const save = async () => mutate(db => {
+      db.meetings = db.meetings || []; const d = hVal(b, 'd'); if (!d) throw new Error('اختر التاريخ');
+      let x = id ? db.meetings.find(y => y.id === id) : null;
+      if (!x) { x = {id: 'mt' + uid(), status: 'upcoming'}; db.meetings.push(x); }
+      x.title = $('#t', b).value.trim() || 'اجتماع الصندوق'; x.date = d; x.time = $('#tm', b).value; x.place = $('#pl', b).value.trim(); x.agenda = $('#ag', b).value.trim();
+      return (id ? 'تعديل' : 'جدولة') + ' اجتماع: ' + x.title + ' — ' + fmtH(d);
+    }, 'اجتماع');
+    $('#ok', b).onclick = async () => { if (await save()) close(); };
+    const wa = $('#okwa', b); if (wa) wa.onclick = async () => {
+      const t = $('#t', b).value.trim() || 'اجتماع الصندوق', d = hVal(b, 'd'), tm = $('#tm', b).value, pl = $('#pl', b).value.trim(), ag = $('#ag', b).value.trim();
+      if (await save()) { close(); window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم 🌿\nدعوة لـ${t} — صندوق آل مبشر بن عبدالله\n🗓️ ${fmtH(d)}${tm ? '\n🕰️ ' + fmtTime(tm) : ''}${pl ? '\n📍 ' + pl : ''}${ag ? '\n\nجدول الأعمال:\n' + ag : ''}\n\nالتفاصيل: ${SITE_URL}`), '_blank'); }
+    };
+  });
+}
+function formMinutes(id) {
+  const m = DB.meetings.find(x => x.id === id);
+  sheet('محضر: ' + esc(m.title), `<div class="small muted" style="margin-bottom:10px">${fmtH(m.date)}</div>
+  <div class="f"><label>الحضور</label>${DB.members.filter(x => x.active !== false).map(x => `<label class="part"><input type="checkbox" data-att="${x.id}" ${(m.attendees || []).includes(x.id) ? 'checked' : ''}><span class="n">${esc(x.name)}</span></label>`).join('')}</div>
+  <div class="f"><label>القرارات (قرار في كل سطر)</label><textarea class="inp" id="dc" rows="4">${esc((m.decisions || []).join('\n'))}</textarea></div>
+  <div class="f"><label>ملخص النقاش</label><textarea class="inp" id="nt" rows="4">${esc(m.notes || '')}</textarea></div>
+  <button class="btn gold block" id="ok">حفظ المحضر</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => {
+      if (await mutate(db => {
+        const x = db.meetings.find(y => y.id === id);
+        x.attendees = $$('[data-att]', b).filter(c => c.checked).map(c => c.dataset.att);
+        x.decisions = $('#dc', b).value.split('\n').map(t => t.trim()).filter(Boolean);
+        x.notes = $('#nt', b).value.trim(); x.status = 'done'; x.heldAt = x.heldAt || Date.now();
+        return 'محضر اجتماع: ' + x.title + ' (' + x.decisions.length + ' قرار)';
+      }, 'محضر')) close();
+    };
+  });
+}
+function formPins() {
+  const ms = DB.members.filter(m => m.active !== false);
+  sheet('أرقام الأعضاء السرية', `<p class="small muted" style="margin-top:0">كل عضو يحتاج رقمه ليكتب مقترحًا <b>باسمه</b>. أرسله له في الخاص (💬). المقترحات بدون اسم لا تحتاج رقمًا.</p>
+  ${ms.map(m => `<div class="part"><span class="n">${esc(m.name)}</span><b class="num" style="letter-spacing:3px;direction:ltr;min-width:52px;text-align:center">${PINS[m.id] || '—'}</b><button class="btn ghost" style="padding:6px 10px;flex:0 0 auto" data-pwa="${m.id}" ${PINS[m.id] ? '' : 'disabled'}>💬</button><button class="btn ghost" style="padding:6px 10px;flex:0 0 auto" data-pnew="${m.id}" title="رقم جديد">↻</button></div>`).join('')}
+  <button class="btn gold block" style="margin-top:12px" id="genAll">توليد أرقام لمن ليس له رقم</button>`, (b, close) => {
+    $$('[data-pwa]', b).forEach(x => x.onclick = () => {
+      const m = DB.members.find(y => y.id === x.dataset.pwa), ph = (m.phone || '').replace(/\D/g, '');
+      window.open(`https://wa.me/${ph}?text=` + encodeURIComponent(`السلام عليكم ${m.name} 🌿\nرقمك السري في صندوق آل مبشر بن عبدالله: ${PINS[m.id]}\nتحتاجه فقط لما تكتب مقترحًا أو رأيًا باسمك، ومرة واحدة فقط. لا تعطيه لأحد.\n${SITE_URL}`), '_blank');
+    });
+    $$('[data-pnew]', b).forEach(x => x.onclick = () => confirmSheet('رقم جديد', 'الرقم القديم يتوقف فورًا، ولازم ترسل له الجديد. تكمل؟', 'تغيير', async () => { await setPins({[x.dataset.pnew]: rand4()}); formPins(); }));
+    $('#genAll', b).onclick = async () => { const p = {}; ms.forEach(m => { if (!PINS[m.id]) p[m.id] = rand4(); }); if (!Object.keys(p).length) return toast('كل الأعضاء لهم أرقام'); await setPins(p); close(); formPins(); };
+  });
+}
+async function setPins(p) {
+  if (DEMO || SANDBOX) { Object.assign(PINS, p); toast('تم ✓'); return; }
+  const bt = fs.batch(); Object.entries(p).forEach(([k, v]) => bt.set(fs.doc('pins/' + k), {pin: v}));
+  try { await bt.commit(); Object.assign(PINS, p); toast('تم ✓'); } catch (e) { toast('تعذّر: ' + e.message, true); }
+}
+async function migrateSugg(oldC, newC) {
+  try {
+    const sn = await fs.collection(`members/${oldC}/suggestions`).get(); if (sn.empty) return;
+    const bt = fs.batch(); sn.docs.forEach(d => { bt.set(fs.doc(`members/${newC}/suggestions/${d.id}`), d.data()); bt.delete(d.ref); });
+    await bt.commit(); listenSugg(newC);
+  } catch (e) { toast('تنبيه: لم تُنقل المقترحات: ' + e.message, true); }
+}
+
 /* ---- more / admin ---- */
 function moreBody() {
   const periods = (DB.periods || []).slice().sort((a, b) => b.start.localeCompare(a.start));
@@ -836,6 +1073,7 @@ function moreBody() {
   if (MODE === 'admin') {
     h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>لوحة المدير</h2></div>
     ${menu('sandbox', '🧪', 'وضع التجربة', 'جرّب أي شي بدون ما ينحفظ')}
+    ${menu('pins', '🔢', 'أرقام الأعضاء السرية', 'لكتابة المقترحات بالاسم — ' + arD(Object.keys(PINS).length) + ' من ' + arD(DB.members.filter(m => m.active !== false).length))}
     ${menu('code', '🔑', 'رمز دخول العائلة', 'الرمز الحالي: ' + DB.settings.familyCode + ' — غيّره أو أرسله')}
     ${menu('backup', '💾', 'نسخة احتياطية', 'تنزيل كل البيانات في ملف تحفظه عندك')}
     ${menu('excel', '📊', 'تصدير Excel', 'الأفراد والحركات والاستثمارات')}
@@ -884,7 +1122,14 @@ function wireMain(c) {
   $$('[data-rep]').forEach(b => b.onclick = () => { const p = DB.periods.find(x => x.id === b.dataset.rep); periodReport(p, p.report || buildReport(DB, p)); });
   $$('[data-prev]').forEach(b => b.onclick = () => { const p = DB.periods.find(x => x.id === b.dataset.prev); periodReport(p, buildReport(DB, p), true); });
   $$('[data-menu]').forEach(b => b.onclick = () => menuAction(b.dataset.menu));
+  const ns = $('#newSug'); if (ns) ns.onclick = formSuggestion;
+  $$('[data-like]').forEach(b => b.onclick = () => toggleLike(b.dataset.like));
   if (MODE !== 'admin') return;
+  const nmt = $('#newMeet'); if (nmt) nmt.onclick = () => formMeeting();
+  $$('[data-medit]').forEach(b => b.onclick = () => formMeeting(b.dataset.medit));
+  $$('[data-mmin]').forEach(b => b.onclick = () => formMinutes(b.dataset.mmin));
+  $$('[data-mdel]').forEach(b => b.onclick = () => confirmSheet('حذف الاجتماع', 'سيُحذف الاجتماع ومحضره. متأكد؟', 'حذف', () => mutate(db => { const m = db.meetings.find(x => x.id === b.dataset.mdel); db.meetings = db.meetings.filter(x => x.id !== m.id); return 'حذف اجتماع: ' + m.title; }, 'اجتماع'), true));
+  $$('[data-sadm]').forEach(b => b.onclick = () => sugAdmin(b.dataset.sadm));
   $('#fab').onclick = quickAdd;
   $$('[data-undo]').forEach(b => b.onclick = () => undoEntry(b.dataset.undo));
   const am = $('#addMember'); if (am) am.onclick = formAddMember;
@@ -1100,6 +1345,7 @@ function menuAction(k) {
   if (k === 'logout') { if (DEMO) return; auth.signOut(); DB = null; TAB = 'home'; startViewer(); return; }
   if (k === 'sandbox') return confirmSheet('وضع التجربة', 'تقدر تضيف وتستثمر وتقفل وتصحح بحرية — <b>ولا شيء يُحفظ</b> ولا يشوفه أحد. للخروج: زر "خروج" أو أعد تحميل الصفحة وترجع البيانات الحقيقية.', 'ابدأ التجربة', () => { SANDBOX = true; stopListeners(); DB = clone(DB); render(); toast('🧪 دخلت وضع التجربة'); });
   if (k === 'code') return formCode();
+  if (k === 'pins') return formPins();
   if (k === 'backup') { const name = `صندوق-آل-مبشر-نسخة-${todayISO()}.json`; download(name, JSON.stringify({kind: 'mubasher-fund-backup', at: Date.now(), db: DB}, null, 1), 'application/json'); toast('تم تنزيل النسخة ✓'); return; }
   if (k === 'excel') return exportExcel();
   if (k === 'restore') return formRestore();
@@ -1122,7 +1368,7 @@ function formCode() {
       const n = $('#n', b).value.trim();
       if (!/^\d{8}$/.test(n)) return toast('الرمز لازم يكون 8 أرقام', true);
       if (n === code) return toast('هذا هو الرمز الحالي', true);
-      if (await mutate(db => { db.settings.familyCode = n; return 'تغيير رمز العائلة'; }, 'رمز العائلة', {deleteCode: code})) close();
+      if (await mutate(db => { db.settings.familyCode = n; return 'تغيير رمز العائلة'; }, 'رمز العائلة', {deleteCode: code})) { close(); if (!DEMO && !SANDBOX) migrateSugg(code, n); }
     };
   });
 }
@@ -1229,7 +1475,8 @@ function boot() {
     try {
       auth.onAuthStateChanged(u => {
         if (u && u.uid === ADMIN_UID) { listenAdmin(); return; }
-        if (u) { auth.signOut(); toast('هذا الحساب ليس حساب المدير', true); }
+        if (u && !u.isAnonymous) { auth.signOut(); toast('هذا الحساب ليس حساب المدير', true); }
+        if (u && u.isAnonymous) return;
         if (MODE === 'admin' || MODE === 'setup') { DB = null; TAB = 'home'; startViewer(); }
       }, err => { BOOT_ERR = 'Auth: ' + err.message; });
     } catch (e) { auth = null; BOOT_ERR = 'Auth: ' + e.message; }
