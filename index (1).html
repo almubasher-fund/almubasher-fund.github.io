@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#16241A">
+<title>صندوق آل مبشر بن عبدالله</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5EFDF; --bg2:#EDE3C6; --card:#FFFCF4; --line:#DFD2A6;
+  --ink:#1B2A1D; --ink2:#55634F; --ink3:#8A927F;
+  --green:#16241A; --green2:#22382A; --green3:#2F4A37;
+  --gold:#B08422; --gold2:#8C6614; --gold3:#F0DFA8; --goldL:#E9C46A;
+  --good:#2F6B4F; --goodBg:#DCEBE1; --mid:#A87A0C; --midBg:#F4E7C2;
+  --bad:#A6432E; --badBg:#F5DDD4; --blue:#2D5B7A; --blueBg:#DCE8F0;
+  --r:16px; --nav:68px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;font-size:14px;line-height:1.6;
+  background-image:radial-gradient(circle at 1px 1px,rgba(176,132,34,.13) 1px,transparent 0);background-size:22px 22px;
+  padding-bottom:calc(var(--nav) + 24px + env(safe-area-inset-bottom));min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:15px}
+.num{font-family:'Cairo',sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+.hidden{display:none!important}
+
+/* ===== HERO ===== */
+.hero{background:linear-gradient(165deg,var(--green3) 0%,var(--green) 70%);color:#F4EBD0;padding:18px 0 34px;position:relative;overflow:hidden;border-radius:0 0 28px 28px;box-shadow:0 10px 30px rgba(22,36,26,.25)}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 0%,rgba(233,196,106,.28),transparent 55%),radial-gradient(circle at 0% 100%,rgba(233,196,106,.12),transparent 50%);pointer-events:none}
+.hero::after{content:"";position:absolute;inset:0;opacity:.07;pointer-events:none;background-image:repeating-linear-gradient(45deg,#E9C46A 0 1px,transparent 1px 14px),repeating-linear-gradient(-45deg,#E9C46A 0 1px,transparent 1px 14px)}
+.topbar{display:flex;align-items:center;gap:8px;position:relative;z-index:2}
+.role-chip{font-family:'Cairo';font-weight:700;font-size:11px;padding:4px 11px;border-radius:20px;background:rgba(244,235,208,.12);border:1px solid rgba(233,196,106,.35);color:var(--goldL)}
+.sync{display:flex;align-items:center;gap:5px;font-size:10.5px;color:#C9C3A6;margin-inline-start:auto}
+.sync i{width:7px;height:7px;border-radius:50%;background:#7a7a6a;display:inline-block}
+.sync.on i{background:#6FD39A;box-shadow:0 0 0 3px rgba(111,211,154,.2)}
+.sync.off i{background:#E06B52}
+.kicker{text-align:center;font-family:'Cairo';font-weight:700;letter-spacing:3px;font-size:10.5px;color:var(--goldL);margin-top:14px;position:relative;z-index:2}
+.title{text-align:center;font-family:'Aref Ruqaa',serif;font-weight:700;font-size:clamp(27px,7.6vw,38px);margin:2px 0 0;position:relative;z-index:2;color:#FBF3DA;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+.subt{text-align:center;font-size:12px;color:#C9C3A6;position:relative;z-index:2}
+.seal{width:190px;height:190px;margin:20px auto 8px;border-radius:50%;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,#FFFBEF,#F3E6C0);border:2px solid var(--goldL);
+  box-shadow:0 0 0 6px rgba(233,196,106,.15),0 0 0 7px rgba(233,196,106,.45),0 14px 34px rgba(0,0,0,.35)}
+.seal::before{content:"";position:absolute;inset:11px;border-radius:50%;border:1.5px dashed var(--gold);opacity:.75}
+.seal .in{text-align:center;color:var(--ink)}
+.seal .l{font-family:'Cairo';font-weight:700;font-size:10.5px;color:var(--ink2)}
+.seal .v{font-family:'Cairo';font-weight:900;font-size:30px;line-height:1.1;color:var(--green)}
+.seal .c{font-size:11px;color:var(--gold2);font-weight:700}
+.seal-cap{text-align:center;font-size:11.5px;color:#D8D1B3;position:relative;z-index:2;max-width:330px;margin:4px auto 0;line-height:1.9}
+.chips{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px;position:relative;z-index:2}
+.chip{background:rgba(255,252,244,.08);border:1px solid rgba(233,196,106,.28);border-radius:14px;padding:10px 6px;text-align:center;backdrop-filter:blur(4px)}
+.chip .l{font-size:10.5px;color:#CFC8A9;font-weight:600}
+.chip .v{font-family:'Cairo';font-weight:800;font-size:15.5px;color:#FFF6DA}
+.chip.hl{background:rgba(233,196,106,.18);border-color:var(--goldL)}
+
+/* ===== SECTIONS ===== */
+.sec{margin-top:22px}
+.sh{display:flex;align-items:center;gap:8px;margin:0 2px 10px}
+.sh h2{font-family:'Cairo';font-weight:800;font-size:16px;margin:0}
+.sh .orn{font-family:'Aref Ruqaa';color:var(--gold);font-size:20px;line-height:1}
+.sh .cnt{margin-inline-start:auto;font-size:11px;color:var(--ink2);background:var(--bg2);padding:2px 10px;border-radius:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:0 1px 0 rgba(176,132,34,.08)}
+.card+.card{margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.kpi .v{font-family:'Cairo';font-weight:800;font-size:17px}
+.kpi .l{font-size:11px;color:var(--ink2)}
+.muted{color:var(--ink2)} .small{font-size:11.5px}
+.empty{text-align:center;padding:22px 12px;color:var(--ink2);background:var(--bg2);border-radius:14px;font-size:13px}
+.banner{background:var(--gold3);border:1px dashed var(--gold);color:var(--gold2);border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-top:14px}
+.banner.bad{background:var(--badBg);border-color:var(--bad);color:var(--bad)}
+
+/* chart */
+.chart{width:100%;height:auto;display:block}
+.chart-lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3);margin-top:2px}
+
+/* members */
+.mem{display:block;width:100%;text-align:right;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;color:inherit}
+.mem:active{transform:scale(.99)}
+.mem-top{display:flex;align-items:center;gap:8px}
+.rank{width:24px;height:24px;border-radius:50%;background:var(--bg2);color:var(--gold2);font-family:'Cairo';font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.rank.done{background:var(--gold);color:#fff}
+.mem-name{font-weight:700;font-size:14px;flex:1}
+.pill{font-family:'Cairo';font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;white-space:nowrap}
+.pill.done{background:var(--goodBg);color:var(--good)} .pill.midhigh{background:#E2F0DA;color:#4F8F4E}
+.pill.mid{background:var(--midBg);color:var(--mid)} .pill.early{background:var(--badBg);color:var(--bad)}
+.pill.blue{background:var(--blueBg);color:var(--blue)} .pill.gray{background:#ECE8DC;color:#7B7868}
+.bar{height:7px;border-radius:6px;background:var(--bg2);overflow:hidden;margin-top:9px}
+.bar>i{display:block;height:100%;border-radius:6px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.bar>i.done{background:linear-gradient(90deg,var(--good),#3F8A66)} .bar>i.midhigh{background:#5FA05E} .bar>i.mid{background:var(--mid)} .bar>i.early{background:var(--bad)}
+.mem-foot{display:flex;justify-content:space-between;font-size:11px;color:var(--ink2);margin-top:5px}
+.total-row{display:flex;justify-content:space-between;align-items:center;background:var(--gold3);border-radius:12px;padding:11px 14px;font-family:'Cairo';font-weight:700;font-size:13px;margin-top:6px}
+.total-row b{color:var(--gold2);font-weight:900;font-size:14.5px}
+
+/* ledger */
+.lg-month{font-family:'Cairo';font-weight:800;font-size:12px;color:var(--gold2);margin:14px 4px 6px}
+.lg{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-bottom:1px solid var(--line)}
+.lg:last-child{border-bottom:none}
+.dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:0 0 auto}
+.dot.in{background:var(--good)} .dot.out{background:var(--bad)} .dot.iv{background:var(--gold)} .dot.fix{background:var(--blue)}
+.lg-b{flex:1;min-width:0}
+.lg-d{font-weight:600;font-size:13px}
+.lg-n{font-size:11px;color:var(--ink2)}
+.lg-t{font-size:10.5px;color:var(--ink3)}
+.lg-a{font-family:'Cairo';font-weight:800;font-size:13.5px;white-space:nowrap}
+.lg-a.in{color:var(--good)} .lg-a.out{color:var(--bad)} .lg-a.iv{color:var(--gold2)} .lg-a.fix{color:var(--blue)}
+.lg.void .lg-d,.lg.void .lg-a{text-decoration:line-through;opacity:.5}
+.tag{font-size:9.5px;font-weight:700;font-family:'Cairo';padding:1px 7px;border-radius:10px;background:var(--blueBg);color:var(--blue);margin-inline-start:4px}
+.lnk{background:none;border:none;color:var(--blue);font-size:11.5px;font-weight:700;padding:2px 0}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px}
+.filters button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 13px;font-size:12px;font-weight:600;color:var(--ink2)}
+.filters button.on{background:var(--green);color:var(--goldL);border-color:var(--green)}
+
+/* investments */
+.inv{background:linear-gradient(160deg,var(--green3),var(--green));color:#F1EAD0;border-radius:18px;padding:16px;position:relative;overflow:hidden;margin-bottom:10px}
+.inv::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 90% 10%,rgba(233,196,106,.25),transparent 55%);pointer-events:none}
+.inv.done{background:linear-gradient(160deg,#4C463A,#38342B)}
+.inv.cancel{background:linear-gradient(160deg,#5a5a55,#45453f);opacity:.75}
+.inv-h{display:flex;align-items:center;gap:8px;position:relative;z-index:1}
+.inv-t{font-family:'Cairo';font-weight:800;font-size:15px;flex:1}
+.inv-s{font-size:11px;color:#C7C1A3;position:relative;z-index:1;margin-top:2px}
+.inv-g{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:12px;position:relative;z-index:1}
+.inv-g .l{font-size:10.5px;color:#B9B393} .inv-g .v{font-family:'Cairo';font-weight:800;font-size:15px;color:#FFF6DA}
+.prog{height:6px;border-radius:5px;background:rgba(255,255,255,.12);margin-top:12px;overflow:hidden;position:relative;z-index:1}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--goldL),#F7E3A3);border-radius:5px}
+.ibadge{font-family:'Cairo';font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(111,211,154,.18);color:#A9E8C3}
+.ibadge.due{background:rgba(233,196,106,.25);color:#F6DE95}
+.ibadge.done{background:rgba(240,221,160,.2);color:#F0DDA0}
+.ibadge.cancel{background:rgba(255,255,255,.15);color:#ddd}
+.inv-btns{display:flex;gap:6px;margin-top:12px;position:relative;z-index:1;flex-wrap:wrap}
+.inv-btns button{flex:1;min-width:110px;border:1px dashed rgba(244,235,208,.45);background:transparent;color:#F1EAD0;border-radius:10px;padding:8px;font-size:12px;font-weight:700}
+.inv-parts{margin-top:12px;border-top:1px solid rgba(233,196,106,.25);padding-top:8px;position:relative;z-index:1}
+.inv-parts .r{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#E7DFC2}
+.stamp{position:absolute;bottom:14px;left:14px;width:76px;height:76px;border-radius:50%;border:3px solid #D24B36;display:flex;align-items:center;justify-content:center;transform:rotate(-15deg);z-index:2;opacity:.9}
+.stamp::before{content:"";position:absolute;inset:5px;border-radius:50%;border:1.5px dashed currentColor;opacity:.7}
+.stamp span{font-family:'Cairo';font-weight:900;font-size:11.5px;text-align:center;line-height:1.3;color:#D24B36}
+.stamp.ok{border-color:var(--good)} .stamp.ok span{color:var(--good)} .stamp.ok::before{color:var(--good)}
+
+/* member detail */
+.md-head{text-align:center;padding:4px 0 10px}
+.md-name{font-family:'Aref Ruqaa';font-size:28px;font-weight:700;color:var(--green)}
+.md-bal{font-family:'Cairo';font-weight:900;font-size:30px;color:var(--gold2)}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.stat:last-child{border-bottom:none}
+.stat b{font-family:'Cairo'}
+
+/* buttons & forms */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:12px;padding:11px 16px;font-family:'Cairo';font-weight:800;font-size:13.5px;background:var(--green);color:var(--goldL)}
+.btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.bad{background:var(--bad);color:#fff}
+.btn.block{width:100%}
+.btn:active{opacity:.85}
+.btn[disabled]{opacity:.5}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap} .btn-row .btn{flex:1}
+.f{margin-bottom:11px}
+.f label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:4px}
+.inp{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink)}
+.inp:focus{outline:2px solid var(--gold);outline-offset:0}
+.hdate{display:grid;grid-template-columns:.8fr 1.6fr 1fr;gap:6px}
+.hdate select{padding:10px 6px}
+.hdate-g{grid-column:1/-1;font-size:11px;color:var(--ink3)}
+.code-inp{text-align:center;font-family:'Cairo';font-weight:800;font-size:28px;letter-spacing:8px;direction:ltr}
+.part{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.part input[type=checkbox]{width:20px;height:20px;accent-color:var(--good)}
+.part .n{flex:1;font-size:13px}
+.part .n small{display:block;color:var(--ink3);font-size:10.5px}
+.part .inp{width:110px;padding:7px 8px;text-align:center}
+.sumline{display:flex;justify-content:space-between;font-family:'Cairo';font-weight:800;padding:10px 0 4px}
+.sumline.bad{color:var(--bad)} .sumline.ok{color:var(--good)}
+.menu-item{display:flex;align-items:center;gap:12px;width:100%;text-align:right;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:8px;color:var(--ink);font-size:14px;font-weight:600}
+.menu-item .ic{width:36px;height:36px;border-radius:11px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+.menu-item .t{flex:1} .menu-item .t small{display:block;font-weight:400;color:var(--ink2);font-size:11.5px}
+
+/* nav */
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(22,36,26,.97);backdrop-filter:blur(10px);border-top:1px solid rgba(233,196,106,.3);padding-bottom:env(safe-area-inset-bottom)}
+.nav .in{max-width:640px;margin:0 auto;display:flex;height:var(--nav)}
+.nav button{flex:1;background:none;border:none;color:#A9A68F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:'Cairo';font-weight:700;font-size:10.5px}
+.nav button .i{font-size:19px;line-height:1;filter:grayscale(.6);opacity:.8}
+.nav button.on{color:var(--goldL)} .nav button.on .i{filter:none;opacity:1}
+.fab{position:fixed;left:16px;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom));z-index:41;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--goldL),var(--gold));color:var(--green);font-size:30px;font-weight:900;box-shadow:0 8px 20px rgba(140,102,20,.45);display:flex;align-items:center;justify-content:center}
+
+/* guest bottom */
+.guest-actions{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.foot-note{text-align:center;font-size:11px;color:var(--ink3);margin-top:22px;line-height:1.9}
+.admin-link{background:none;border:none;color:var(--ink3);font-size:11.5px;text-decoration:underline;margin:10px auto 0;display:block}
+
+/* sheet */
+.sheet-ov{position:fixed;inset:0;z-index:60;background:rgba(15,22,17,.55);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:up .28s cubic-bezier(.2,.9,.3,1)}
+.sheet-h{display:flex;align-items:center;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sheet-h b{font-family:'Cairo';font-size:16px;flex:1}
+.sheet-h .x{width:34px;height:34px;border-radius:50%;border:none;background:var(--bg2);font-size:15px;color:var(--ink2)}
+.sheet-b{padding:16px;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:90;background:var(--green);color:var(--goldL);padding:10px 18px;border-radius:24px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:fade .2s;max-width:90vw;text-align:center}
+.toast.bad{background:var(--bad);color:#fff}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:14px;color:var(--ink2)}
+.spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--gold);animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.demo-bar{position:fixed;top:8px;left:8px;z-index:70;display:flex;gap:4px;background:#000a;padding:4px;border-radius:20px}
+.demo-bar button{border:none;border-radius:16px;padding:4px 10px;font-size:11px;background:#fff3;color:#fff}
+.demo-bar button.on{background:var(--goldL);color:#000}
+
+/* printable */
+.print-ov{position:fixed;inset:0;z-index:80;background:#fff;overflow-y:auto}
+.print-tools{position:sticky;top:0;display:flex;gap:8px;padding:10px;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.paper{max-width:720px;margin:0 auto;padding:30px 26px;color:var(--ink)}
+.cert{border:3px double var(--gold);padding:34px 26px;text-align:center;background:radial-gradient(circle at 50% 0%,#FFF8E2,#fff 60%);position:relative}
+.cert::before{content:"";position:absolute;inset:8px;border:1px solid var(--gold3)}
+.cert .k{font-family:'Cairo';letter-spacing:4px;font-size:11px;color:var(--gold2);font-weight:700}
+.cert h1{font-family:'Aref Ruqaa';font-size:34px;margin:6px 0 2px;color:var(--green)}
+.cert .who{font-family:'Aref Ruqaa';font-size:36px;color:var(--gold2);margin:14px 0 4px}
+.cert .amt{font-family:'Cairo';font-weight:900;font-size:30px;color:var(--green)}
+.cert p{font-size:14px;line-height:2;color:var(--ink2);max-width:460px;margin:8px auto}
+.cert .sig{display:flex;justify-content:space-between;margin-top:34px;font-size:12px;color:var(--ink2)}
+.rep h1{font-family:'Aref Ruqaa';font-size:28px;margin:0;color:var(--green);text-align:center}
+.rep h3{font-family:'Cairo';font-size:14px;margin:18px 0 6px;color:var(--gold2)}
+.rep table{width:100%;border-collapse:collapse;font-size:12.5px}
+.rep td,.rep th{border-bottom:1px solid var(--line);padding:6px 4px;text-align:right}
+.rep th{font-family:'Cairo';background:var(--bg2)}
+.rep .tot{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.rep .tot div{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.rep .tot b{display:block;font-family:'Cairo';font-size:16px}
+@media print{
+  body{background:#fff;padding:0}
+  body.printing>*:not(.print-ov){display:none!important}
+  .print-tools{display:none!important}
+  .print-ov{position:static;overflow:visible}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading"><div class="spin"></div><div>جاري التحميل…</div></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+'use strict';
+/* ================= CONFIG ================= */
+const FB_CONFIG = {
+  apiKey: "AIzaSyAcfhIuj1KByawirrSSJaNC0JXLB_RG8F4",
+  authDomain: "al-mubasher-fund.firebaseapp.com",
+  projectId: "al-mubasher-fund",
+  storageBucket: "al-mubasher-fund.firebasestorage.app",
+  messagingSenderId: "22722489403",
+  appId: "1:22722489403:web:13d2545a30d6f0a813001e"
+};
+const ADMIN_UID = "SiFtRPaZ2xfcMAaeZty2QYAtfs42";
+const LS_CODE = 'mubasher_family_code_v2';
+const DEMO = location.hash === '#demo' && window.DEMO_DB;
+
+/* ================= HELPERS ================= */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Math.round(Number(n) || 0).toLocaleString('en-US');
+const r2 = n => Math.round((Number(n) || 0) * 100) / 100;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clone = o => JSON.parse(JSON.stringify(o));
+const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const addDays = (iso, k) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + k); return d.toISOString().slice(0, 10); };
+const addMonths = (iso, k) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + Number(k || 0)); return d.toISOString().slice(0, 10); };
+const arD = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+const SAR = ' ر.س';
+
+/* ================= HIJRI (Umm al-Qura) ================= */
+const HMONTHS = ['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+const GMONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+let HP = null;
+try { HP = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', {timeZone:'UTC', year:'numeric', month:'numeric', day:'numeric'}); } catch (e) {}
+const hCache = {};
+function g2h(iso) {
+  if (hCache[iso]) return hCache[iso];
+  const p = {};
+  HP.formatToParts(new Date(iso + 'T12:00:00Z')).forEach(x => p[x.type] = x.value);
+  return (hCache[iso] = {y: +p.year, m: +p.month, d: +p.day});
+}
+function h2g(y, m, d) {
+  const est = new Date(Date.UTC(622, 6, 19) + ((y - 1) * 354.36667 + (m - 1) * 29.5306 + (d - 1)) * 864e5).toISOString().slice(0, 10);
+  for (let k = 0; k <= 60; k++) for (const s of (k ? [k, -k] : [0])) {
+    const c = addDays(est, s), h = g2h(c);
+    if (h.y === y && h.m === m && h.d === d) return c;
+  }
+  return null;
+}
+const hDaysIn = (y, m) => h2g(y, m, 30) ? 30 : 29;
+function fmtH(iso) { if (!iso) return ''; if (!HP) return fmtG(iso); const h = g2h(iso); return `${arD(h.d)} ${HMONTHS[h.m - 1]} ${arD(h.y)}هـ`; }
+function fmtHM(iso) { if (!HP) return iso.slice(0, 7); const h = g2h(iso); return `${HMONTHS[h.m - 1]} ${arD(h.y)}هـ`; }
+function fmtG(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${+d} ${GMONTHS[+m - 1]} ${y}م`; }
+function dateBoth(iso) { return `${fmtH(iso)} <span class="muted" style="font-size:.85em">· ${fmtG(iso)}</span>`; }
+
+function hInput(name, iso) {
+  iso = iso || todayISO();
+  const h = g2h(iso);
+  let days = ''; for (let i = 1; i <= 30; i++) days += `<option value="${i}" ${i === h.d ? 'selected' : ''}>${arD(i)}</option>`;
+  const months = HMONTHS.map((n, i) => `<option value="${i + 1}" ${i + 1 === h.m ? 'selected' : ''}>${n}</option>`).join('');
+  let years = ''; for (let y = 1445; y <= 1475; y++) years += `<option value="${y}" ${y === h.y ? 'selected' : ''}>${arD(y)}</option>`;
+  return `<div class="hdate" data-name="${name}"><select class="inp" data-p="d">${days}</select><select class="inp" data-p="m">${months}</select><select class="inp" data-p="y">${years}</select><div class="hdate-g"></div></div>`;
+}
+function wireHInputs(root) {
+  $$('.hdate', root).forEach(w => {
+    const upd = () => {
+      const y = +$('[data-p=y]', w).value, m = +$('[data-p=m]', w).value, ds = $('[data-p=d]', w);
+      const max = hDaysIn(y, m);
+      if (+ds.value > max) ds.value = String(max);
+      [...ds.options].forEach(o => o.disabled = +o.value > max);
+      const g = h2g(y, m, +ds.value);
+      w.dataset.value = g || '';
+      $('.hdate-g', w).textContent = g ? 'يوافق ' + fmtG(g) : '';
+    };
+    w.addEventListener('change', upd); upd();
+  });
+}
+const hVal = (root, name) => $(`.hdate[data-name="${name}"]`, root).dataset.value;
+
+/* ================= STATE ================= */
+let MODE = 'loading';   // guest | member | admin | setup | loading
+let TAB = 'home';
+let DB = null;          // full fund data (member/admin)
+let PUB = null;         // public summary (guest)
+let AUDIT = [];
+let SYNC = 'off';
+let fs = null, auth = null, unsubs = [];
+let ledgerFilter = 'all', ledgerPeriod = 'all';
+
+/* ================= DOMAIN ================= */
+const IN_TYPES = {opening: 1, contribution: 1, maturity: 1};
+const TYPE_LABEL = {opening:'رصيد افتتاحي', contribution:'مساهمة', withdrawal:'سحب لعضو', expense:'مصروف', invest:'استثمار', maturity:'استحقاق استثمار', reversal:'قيد تصحيح'};
+const target = (db, m) => Number(m.target || db.settings.target || 10000);
+const expProfit = iv => (iv.manualProfit !== undefined && iv.manualProfit !== null && iv.manualProfit !== '') ? Number(iv.manualProfit) : iv.principal * (iv.rate / 100) * (iv.months / 12);
+const maturity = iv => iv.start ? addMonths(iv.start, iv.months) : null;
+const memName = (db, id) => (db.members.find(m => m.id === id) || {}).name || '—';
+const byDate = (a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || 0) - (b.createdAt || 0);
+const isLive = e => !e.reversedBy && e.type !== 'reversal';
+
+function compute(db, upTo) {
+  const M = {};
+  db.members.forEach(m => M[m.id] = {contrib: 0, cash: 0, inv: 0, profit: 0, spent: 0, expected: 0, series: []});
+  let cash = 0, inv = 0, contrib = 0, profit = 0, spent = 0, withdrawn = 0;
+  const growth = [];
+  const list = db.entries.filter(e => isLive(e) && (!upTo || e.date <= upTo)).sort(byDate);
+  for (const e of list) {
+    cash += (IN_TYPES[e.type] ? 1 : -1) * e.amount;
+    const touched = new Set();
+    for (const [k, v] of Object.entries(e.alloc || {})) if (M[k]) { M[k].cash += v; touched.add(k); if (e.type === 'expense') M[k].spent -= v; }
+    for (const [k, v] of Object.entries(e.inv || {})) { inv += v; if (M[k]) M[k].inv += v; }
+    for (const [k, v] of Object.entries(e.contrib || {})) { contrib += v; if (M[k]) M[k].contrib += v; }
+    for (const [k, v] of Object.entries(e.profit || {})) { profit += v; if (M[k]) M[k].profit += v; }
+    if (e.type === 'expense') spent += e.amount;
+    if (e.type === 'withdrawal') withdrawn += e.amount;
+    const last = growth[growth.length - 1];
+    if (last && last[0] === e.date) last[1] = r2(cash + inv); else growth.push([e.date, r2(cash + inv)]);
+    touched.forEach(k => {
+      const s = M[k].series, v = r2(M[k].cash + M[k].inv), l = s[s.length - 1];
+      if (l && l[0] === e.date) l[1] = v; else s.push([e.date, v]);
+    });
+  }
+  let expected = 0;
+  if (!upTo) db.investments.forEach(iv => {
+    if (iv.status !== 'active') return;
+    const ep = expProfit(iv); expected += ep;
+    for (const [k, s] of Object.entries(iv.shares || {})) if (M[k]) M[k].expected += ep * s / iv.principal;
+  });
+  Object.values(M).forEach(x => { x.cash = r2(x.cash); x.inv = r2(x.inv); x.balance = r2(x.cash + x.inv); });
+  return {M, cash: r2(cash), inv: r2(inv), contrib, profit, spent, withdrawn, expected, assets: r2(cash + inv), total: r2(cash + inv + expected), growth};
+}
+
+function statusFor(amount, tgt) {
+  const p = amount / tgt;
+  if (p >= 1) return {cls: 'done', label: 'مكتمل'};
+  if (p >= .6) return {cls: 'midhigh', label: 'متقدم'};
+  if (p >= .15) return {cls: 'mid', label: 'مستمر'};
+  return {cls: 'early', label: 'تأسيس'};
+}
+function assignRanks(db) {
+  const c = compute(db);
+  db.members.forEach(m => {
+    if (!m.completedRank && c.M[m.id] && c.M[m.id].contrib >= target(db, m)) {
+      db.rankCounter = (db.rankCounter || 0) + 1; m.completedRank = db.rankCounter;
+    }
+  });
+}
+function sortedMembers(db, c) {
+  return db.members.filter(m => m.active !== false).slice().sort((a, b) => {
+    const ad = c.M[a.id].contrib >= target(db, a), bd = c.M[b.id].contrib >= target(db, b);
+    if (ad && bd) return (a.completedRank || 999) - (b.completedRank || 999);
+    if (ad !== bd) return ad ? -1 : 1;
+    return c.M[b.id].contrib - c.M[a.id].contrib;
+  });
+}
+function lockedPeriod(db, date) { return (db.periods || []).find(p => p.status === 'closed' && date >= p.start && date <= p.end); }
+function periodOf(db, date) { return (db.periods || []).find(p => date >= p.start && date <= p.end); }
+function checkDate(db, date) {
+  if (!date) throw new Error('اختر تاريخًا صحيحًا');
+  const p = lockedPeriod(db, date);
+  if (p) throw new Error(`التاريخ داخل فترة مقفلة (${p.name}). استخدم تاريخًا في فترة مفتوحة.`);
+}
+function pushEntry(db, e) { e.id = e.id || 'e' + uid(); e.createdAt = Date.now(); db.entries.push(e); return e; }
+
+/* ---- actions (mutate db, throw Error on invalid) ---- */
+const A = {
+  contribution(db, mid, amount, date, note) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
+    const n = memName(db, mid);
+    pushEntry(db, {date, type: 'contribution', amount, memberId: mid, desc: `مساهمة من ${n}`, note: note || '', alloc: {[mid]: amount}, contrib: {[mid]: amount}});
+    return `مساهمة ${fmt(amount)} من ${n}`;
+  },
+  withdrawal(db, mid, amount, date, note) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
+    const c = compute(db); if (c.M[mid].cash + 0.001 < amount) throw new Error(`النقد المتاح للعضو ${fmt(c.M[mid].cash)} فقط (الباقي مستثمر)`);
+    const n = memName(db, mid);
+    pushEntry(db, {date, type: 'withdrawal', amount, memberId: mid, desc: `سحب لـ ${n}`, note: note || '', alloc: {[mid]: -amount}, contrib: {[mid]: -amount}});
+    return `سحب ${fmt(amount)} لـ ${n}`;
+  },
+  expense(db, amount, date, desc, note) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); if (!desc) throw new Error('اكتب البيان'); checkDate(db, date);
+    const c = compute(db); if (c.cash + 0.001 < amount) throw new Error(`النقد المتاح في الصندوق ${fmt(c.cash)} فقط`);
+    const holders = Object.entries(c.M).filter(([, x]) => x.cash > 0.001);
+    const tot = holders.reduce((s, [, x]) => s + x.cash, 0), alloc = {};
+    let acc = 0;
+    holders.forEach(([k, x], i) => { const v = i === holders.length - 1 ? r2(amount - acc) : r2(amount * x.cash / tot); acc = r2(acc + v); alloc[k] = -v; });
+    pushEntry(db, {date, type: 'expense', amount, desc, note: (note ? note + ' — ' : '') + 'وُزّع على أصحاب النقد بنسبة نقدهم', alloc});
+    return `مصروف ${fmt(amount)}: ${desc}`;
+  },
+  invest(db, {title, principal, rate, months, start, date, shares}) {
+    principal = r2(principal);
+    if (!title) throw new Error('اكتب اسم الاستثمار');
+    if (!(principal > 0) || !(months > 0) || !(rate >= 0)) throw new Error('أكمل بيانات الاستثمار');
+    checkDate(db, date);
+    const c = compute(db);
+    const clean = {}; let sum = 0;
+    for (const [k, v] of Object.entries(shares)) { const vv = r2(v); if (vv > 0) { if (vv > c.M[k].cash + 0.001) throw new Error(`${memName(db, k)}: نقده المتاح ${fmt(c.M[k].cash)} فقط`); clean[k] = vv; sum = r2(sum + vv); } }
+    if (Math.abs(sum - principal) > 0.01) throw new Error(`مجموع الحصص (${fmt(sum)}) لا يساوي رأس المال (${fmt(principal)})`);
+    const id = 'inv' + uid();
+    const e = pushEntry(db, {date, type: 'invest', amount: principal, desc: `استثمار: ${title}`, note: 'تحويل من النقد إلى الاستثمار', invId: id, alloc: Object.fromEntries(Object.entries(clean).map(([k, v]) => [k, -v])), inv: clean});
+    db.investments.push({id, title, principal, rate: Number(rate), months: Number(months), start: start || date, status: 'active', shares: clean, investEntryId: e.id});
+    return `استثمار جديد: ${title} (${fmt(principal)})`;
+  },
+  closeInvestment(db, ivId, profit, date) {
+    const iv = db.investments.find(i => i.id === ivId); if (!iv || iv.status !== 'active') throw new Error('الاستثمار غير نشط');
+    profit = r2(profit); if (!(profit >= 0)) throw new Error('أدخل الربح الفعلي'); checkDate(db, date);
+    const ks = Object.keys(iv.shares), alloc = {}, inv = {}, pr = {};
+    let acc = 0;
+    ks.forEach((k, i) => { const p = i === ks.length - 1 ? r2(profit - acc) : r2(profit * iv.shares[k] / iv.principal); acc = r2(acc + p); pr[k] = p; inv[k] = -iv.shares[k]; alloc[k] = r2(iv.shares[k] + p); });
+    const e = pushEntry(db, {date, type: 'maturity', amount: r2(iv.principal + profit), desc: `استحقاق: ${iv.title}`, note: `رأس المال ${fmt(iv.principal)} + ربح ${fmt(profit)} وُزّع على المشاركين حسب حصصهم`, invId: iv.id, alloc, inv, profit: pr});
+    iv.status = 'completed'; iv.finalProfit = profit; iv.completedAt = date; iv.maturityEntryId = e.id;
+    return `إقفال استثمار ${iv.title} بربح ${fmt(profit)}`;
+  },
+  reverse(db, entryId, reason) {
+    const e = db.entries.find(x => x.id === entryId);
+    if (!e || !isLive(e)) throw new Error('القيد غير قابل للتصحيح');
+    const date = todayISO(); checkDate(db, date);
+    if (e.type === 'invest') {
+      const iv = db.investments.find(i => i.id === e.invId);
+      if (iv && iv.status === 'completed') throw new Error('أعد فتح الاستثمار أولًا ثم ألغه');
+      if (iv) iv.status = 'cancelled';
+    }
+    if (e.type === 'maturity') {
+      const iv = db.investments.find(i => i.id === e.invId);
+      if (iv) { iv.status = 'active'; delete iv.finalProfit; delete iv.completedAt; delete iv.maturityEntryId; }
+    }
+    if (e.type === 'contribution' || e.type === 'opening') {
+      const c = compute(db); if (c.M[e.memberId] && c.M[e.memberId].cash + 0.001 < e.amount) throw new Error('مبلغ هذه المساهمة داخل استثمار حاليًا؛ لا يمكن عكسه قبل إقفال الاستثمار');
+    }
+    const r = pushEntry(db, {date, type: 'reversal', amount: e.amount, reversalOf: e.id, desc: `قيد تصحيح: ${e.desc}`, note: reason || ''});
+    e.reversedBy = r.id;
+    return `تصحيح قيد: ${e.desc} (${fmt(e.amount)})`;
+  }
+};
+
+function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); delete v.settings.familyCode; return v; }
+function buildPublic(db) {
+  const c = compute(db);
+  return {
+    fundName: db.fundName, founded: db.settings.founded || '', total: c.total, cash: c.cash, invested: c.inv, expected: r2(c.expected), realized: r2(c.profit),
+    investments: db.investments.filter(i => i.status !== 'cancelled').map(i => ({title: i.title, principal: i.principal, rate: i.rate, months: i.months, start: i.start, status: i.status, profit: r2(i.status === 'completed' ? i.finalProfit : expProfit(i))})),
+    growth: c.growth, updatedAt: db.updatedAt || Date.now()
+  };
+}
+
+/* ================= FIREBASE ================= */
+function fbReady() { return !!(window.firebase && firebase.initializeApp); }
+function initFB() {
+  if (!fbReady()) return false;
+  try { if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG); fs = firebase.firestore(); } catch (e) { BOOT_ERR = 'Firestore: ' + e.message; return false; }
+  try { auth = firebase.auth(); } catch (e) { auth = null; BOOT_ERR = 'Auth: ' + e.message; }
+  return true;
+}
+function stopListeners() { unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs = []; }
+function setSync(s) { SYNC = s; const el = $('#sync'); if (el) { el.className = 'sync ' + s; $('span', el).textContent = s === 'on' ? 'متصل · تحديث مباشر' : s === 'off' ? 'غير متصل' : 'جاري الاتصال'; } }
+
+function listenGuest() {
+  stopListeners(); MODE = 'guest'; SYNC = 'wait'; render();
+  if (DEMO) { PUB = buildPublic(DB); render(); return; }
+  unsubs.push(fs.doc('public/summary').onSnapshot(s => { PUB = s.exists ? s.data() : null; setSync('on'); render(); }, err => { setSync('off'); render(); }));
+}
+function listenMember(code, fromInput) {
+  stopListeners(); setSync('wait');
+  if (DEMO) { MODE = 'member'; render(); return Promise.resolve(true); }
+  return new Promise(res => {
+    const u = fs.doc('members/' + code).onSnapshot(s => {
+      if (!s.exists) { try { localStorage.removeItem(LS_CODE); } catch (e) {} if (fromInput) res(false); else { toast('تغيّر رمز الدخول، اطلب الرمز الجديد', true); listenGuest(); } return; }
+      try { localStorage.setItem(LS_CODE, code); } catch (e) {}
+      DB = s.data().db; MODE = 'member'; setSync('on'); render(); res(true);
+    }, err => { setSync('off'); res(false); });
+    unsubs.push(u);
+  });
+}
+function listenAdmin() {
+  stopListeners(); setSync('wait');
+  unsubs.push(fs.doc('fund/main').onSnapshot(s => {
+    setSync('on');
+    if (!s.exists) { DB = null; MODE = 'setup'; render(); return; }
+    DB = s.data(); MODE = 'admin'; render();
+  }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
+  unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
+}
+
+async function persist(action, detail, extra) {
+  assignRanks(DB);
+  DB.updatedAt = Date.now();
+  if (DEMO) { AUDIT.push({at: Date.now(), action, detail}); return; }
+  const data = clone(DB);
+  const b = fs.batch();
+  b.set(fs.doc('fund/main'), data);
+  b.set(fs.doc('public/summary'), buildPublic(data));
+  b.set(fs.doc('members/' + data.settings.familyCode), {db: familyView(data), updatedAt: data.updatedAt});
+  if (extra && extra.deleteCode) b.delete(fs.doc('members/' + extra.deleteCode));
+  b.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action, detail: detail || ''})}, {merge: true});
+  await b.commit();
+}
+async function mutate(fn, action, extra) {
+  const backup = clone(DB);
+  let detail;
+  try { detail = fn(DB); } catch (e) { DB = backup; toast(e.message, true); return false; }
+  render();
+  try { await persist(action, detail, extra); toast('تم الحفظ ✓'); return true; }
+  catch (e) { DB = backup; render(); toast('تعذّر الحفظ: ' + (e.message || e), true); return false; }
+}
+
+/* ================= UI PRIMITIVES ================= */
+function toast(msg, bad) {
+  const t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), bad ? 4200 : 2200);
+}
+function sheet(title, body, onMount) {
+  const ov = document.createElement('div'); ov.className = 'sheet-ov';
+  ov.innerHTML = `<div class="sheet"><div class="sheet-h"><b>${title}</b><button class="x" aria-label="إغلاق">✕</button></div><div class="sheet-b">${body}</div></div>`;
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  $('.x', ov).onclick = close;
+  document.body.appendChild(ov);
+  const b = $('.sheet-b', ov); wireHInputs(b);
+  if (onMount) onMount(b, close);
+  return close;
+}
+function confirmSheet(title, msg, okLabel, onOk, danger) {
+  sheet(title, `<p style="margin-top:0">${msg}</p><div class="btn-row"><button class="btn ${danger ? 'bad' : 'gold'}" id="ok">${okLabel}</button><button class="btn ghost" id="no">رجوع</button></div>`, (b, close) => {
+    $('#no', b).onclick = close; $('#ok', b).onclick = () => { close(); onOk(); };
+  });
+}
+function printView(html) {
+  const ov = document.createElement('div'); ov.className = 'print-ov';
+  ov.innerHTML = `<div class="print-tools"><button class="btn gold" id="pp">🖨️ حفظ PDF / طباعة</button><button class="btn ghost" id="pc">إغلاق</button></div><div class="paper">${html}</div>`;
+  document.body.appendChild(ov); document.body.classList.add('printing');
+  $('#pc', ov).onclick = () => { ov.remove(); document.body.classList.remove('printing'); };
+  $('#pp', ov).onclick = () => window.print();
+}
+function download(name, text, type) {
+  const blob = new Blob([text], {type}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function memberOptions(db, sel) { return db.members.filter(m => m.active !== false).map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.name)}</option>`).join(''); }
+
+function lineChart(pts, h = 130) {
+  if (!pts || pts.length < 2) return '<div class="empty small">الرسم يظهر بعد أكثر من حركة</div>';
+  const W = 600, H = h, pad = 8;
+  const t0 = new Date(pts[0][0]).getTime(), t1 = Math.max(new Date(pts[pts.length - 1][0]).getTime(), t0 + 864e5);
+  const vals = pts.map(p => p[1]), mx = Math.max(...vals) * 1.08 || 1, mn = 0;
+  const X = d => W - pad - (new Date(d).getTime() - t0) / (t1 - t0) * (W - 2 * pad);
+  const Y = v => H - pad - (v - mn) / (mx - mn) * (H - 2 * pad);
+  let d = `M${X(pts[0][0])},${Y(pts[0][1])}`;
+  for (let i = 1; i < pts.length; i++) d += ` H${X(pts[i][0])} V${Y(pts[i][1])}`;
+  const area = d + ` V${H - pad} H${X(pts[0][0])} Z`;
+  const last = pts[pts.length - 1];
+  const gid = 'g' + uid();
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B08422" stop-opacity=".35"/><stop offset="1" stop-color="#B08422" stop-opacity="0"/></linearGradient></defs>
+  <path d="${area}" fill="url(#${gid})"/><path d="${d}" fill="none" stroke="#8C6614" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+  <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="#16241A" stroke="#E9C46A" stroke-width="2"/></svg>
+  <div class="chart-lbl"><span>${fmtHM(pts[0][0])}</span><span>${fmtHM(last[0])}</span></div>`;
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const app = $('#app');
+  const y = window.scrollY;
+  if (MODE === 'loading') return;
+  if (MODE === 'setup') { app.innerHTML = setupView(); wireSetup(); return; }
+  if (MODE === 'guest') { app.innerHTML = heroHTML(PUB, 'ضيف') + `<div class="wrap">${guestBody()}</div>`; wireGuest(); demoBar(); return; }
+  const c = compute(DB);
+  const S = buildPublic(DB);
+  let body = '';
+  if (TAB === 'home') body = homeBody(S, c);
+  else if (TAB === 'members') body = membersBody(c);
+  else if (TAB === 'ledger') body = ledgerBody();
+  else if (TAB === 'invest') body = investBody(c);
+  else body = moreBody();
+  app.innerHTML = (TAB === 'home' ? heroHTML(S, MODE === 'admin' ? 'المدير' : 'عضو') : miniHero()) + `<div class="wrap">${body}</div>` + navHTML() + (MODE === 'admin' ? '<button class="fab" id="fab" aria-label="إضافة">+</button>' : '');
+  wireMain(c);
+  requestAnimationFrame(() => $$('.bar>i[data-w]').forEach(b => b.style.width = b.dataset.w + '%'));
+  window.scrollTo(0, y);
+  demoBar();
+}
+
+function heroHTML(S, role) {
+  const founded = S && S.founded ? `تأسس ${fmtHM(S.founded)}` : '';
+  return `<header class="hero"><div class="wrap">
+    <div class="topbar"><span class="role-chip">${role}</span><div class="sync ${SYNC}" id="sync"><i></i><span>${SYNC === 'on' ? 'متصل · تحديث مباشر' : SYNC === 'off' ? 'غير متصل' : 'جاري الاتصال'}</span></div></div>
+    <div class="kicker">FAMILY TREASURY · السجل المالي</div>
+    <h1 class="title">صندوق آل مبشر بن عبدالله</h1>
+    <div class="subt">${founded}</div>
+    ${S ? `<div class="seal"><div class="in"><div class="l">إجمالي أموال الصندوق</div><div class="v num">${fmt(S.total)}</div><div class="c">ريال سعودي</div></div></div>
+    <div class="seal-cap">= ${fmt(S.cash)} نقد + ${fmt(S.invested)} مستثمر + ${fmt(S.expected)} أرباح متوقعة</div>
+    <div class="chips"><div class="chip hl"><div class="l">💵 النقد المتاح</div><div class="v num">${fmt(S.cash)}</div></div>
+    <div class="chip"><div class="l">📈 المستثمر</div><div class="v num">${fmt(S.invested)}</div></div>
+    <div class="chip"><div class="l">✨ أرباح متوقعة</div><div class="v num">${fmt(S.expected)}</div></div></div>` : `<div class="banner" style="position:relative;z-index:2">لم تُنشر بيانات الصندوق بعد</div>`}
+  </div></header>`;
+}
+function miniHero() {
+  const t = {members: 'أفراد الصندوق', ledger: 'الحركات المالية', invest: 'الاستثمارات', more: MODE === 'admin' ? 'الإدارة والمزيد' : 'المزيد'}[TAB];
+  return `<header class="hero" style="padding-bottom:20px"><div class="wrap"><div class="topbar"><span class="role-chip">${MODE === 'admin' ? 'المدير' : 'عضو'}</span><div class="sync ${SYNC}" id="sync"><i></i><span>${SYNC === 'on' ? 'متصل · تحديث مباشر' : 'غير متصل'}</span></div></div><h1 class="title" style="font-size:26px;margin-top:10px">${t}</h1></div></header>`;
+}
+function navHTML() {
+  const items = [['home', '🏛️', 'الرئيسية'], ['members', '👥', 'الأفراد'], ['ledger', '📜', 'الحركات'], ['invest', '📈', 'الاستثمار'], ['more', MODE === 'admin' ? '⚙️' : '☰', MODE === 'admin' ? 'الإدارة' : 'المزيد']];
+  return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}</button>`).join('')}</div></nav>`;
+}
+
+/* ---- guest ---- */
+function guestBody() {
+  if (SYNC === 'off' && !PUB) return `<div class="banner bad">تعذّر الاتصال. تأكد من الإنترنت ثم أعد فتح الصفحة.</div>`;
+  let h = '';
+  if (PUB) {
+    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${lineChart(PUB.growth)}</div></div>`;
+    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الاستثمارات</h2><span class="cnt">${PUB.investments.length}</span></div>${PUB.investments.length ? PUB.investments.map(pubInvCard).join('') : '<div class="empty">لا توجد استثمارات</div>'}</div>`;
+    h += `<div class="grid2 sec"><div class="kpi"><div class="v num">${fmt(PUB.realized)}</div><div class="l">أرباح محققة</div></div><div class="kpi"><div class="v num">${fmt(PUB.cash + PUB.invested)}</div><div class="l">الأصول الفعلية</div></div></div>`;
+  }
+  h += `<div class="guest-actions"><button class="btn gold block" id="memberLogin">🔑 دخول أفراد العائلة</button></div>
+  <div class="foot-note">هذا عرض عام للصندوق بدون بيانات الأفراد.<br>${PUB ? 'آخر تحديث: ' + fmtH(new Date(PUB.updatedAt).toISOString().slice(0, 10)) : ''}</div>
+  <button class="admin-link" id="adminLogin">دخول المدير</button>`;
+  return h;
+}
+function pubInvCard(i) {
+  const md = maturity(i), st = invState(i);
+  const prog = i.status === 'active' && i.start ? Math.min(100, Math.max(0, (Date.now() - new Date(i.start)) / (new Date(md) - new Date(i.start)) * 100)) : 100;
+  return `<div class="inv ${i.status === 'completed' ? 'done' : ''}"><div class="inv-h"><div class="inv-t">${esc(i.title)}</div><span class="ibadge ${st.cls}">${st.label}</span></div>
+  <div class="inv-s">${i.start ? fmtH(i.start) : ''} ← ${md ? fmtH(md) : ''}</div>
+  <div class="inv-g"><div><div class="l">رأس المال</div><div class="v">${fmt(i.principal)}${SAR}</div></div><div><div class="l">العائد السنوي</div><div class="v">${i.rate}٪</div></div>
+  <div><div class="l">المدة</div><div class="v">${arD(i.months)} أشهر</div></div><div><div class="l">${i.status === 'completed' ? 'الربح المحقق' : 'الربح المتوقع'}</div><div class="v">${i.status === 'completed' ? '' : '≈ '}${fmt(i.profit)}${SAR}</div></div></div>
+  ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>` : ''}</div>`;
+}
+function invState(i) {
+  if (i.status === 'completed') return {cls: 'done', label: '✓ مكتمل'};
+  if (i.status === 'cancelled') return {cls: 'cancel', label: 'ملغى'};
+  const md = maturity(i);
+  if (md && todayISO() >= md) return {cls: 'due', label: '⏳ مستحق'};
+  return {cls: '', label: '● نشط'};
+}
+
+/* ---- home (member/admin) ---- */
+function homeBody(S, c) {
+  const ms = sortedMembers(DB, c), done = ms.filter(m => c.M[m.id].contrib >= target(DB, m)).length;
+  const recent = DB.entries.slice().sort(byDate).reverse().slice(0, 5);
+  const openP = (DB.periods || []).find(p => p.status === 'open' && todayISO() >= p.start && todayISO() <= p.end);
+  const due = DB.investments.filter(i => i.status === 'active' && maturity(i) && todayISO() >= maturity(i));
+  let h = '';
+  if (MODE === 'admin' && due.length) h += `<div class="banner">⏳ ${due.map(i => esc(i.title)).join('، ')} — حان الاستحقاق. افتح الاستثمارات وأقفله بالربح الفعلي.</div>`;
+  h += `<div class="grid2 sec" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi"><div class="v num">${arD(ms.length)}</div><div class="l">عدد الأفراد</div></div>
+    <div class="kpi"><div class="v num">${arD(done)}</div><div class="l">أكملوا المستهدف</div></div>
+    <div class="kpi"><div class="v num">${fmt(c.profit)}</div><div class="l">أرباح محققة</div></div></div>`;
+  if (openP) h += `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🗓️</span><div style="flex:1"><b>${esc(openP.name)}</b><div class="small muted">${fmtH(openP.start)} ← ${fmtH(openP.end)}</div></div><span class="pill blue">مفتوحة</span></div>`;
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${lineChart(S.growth)}</div></div>`;
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>آخر الحركات</h2><button class="lnk" data-go="ledger" style="margin-inline-start:auto">عرض الكل ←</button></div><div class="card" style="padding:0">${recent.map(ledgerRow).join('') || '<div class="empty">لا حركات</div>'}</div></div>`;
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المتصدرون</h2><button class="lnk" data-go="members" style="margin-inline-start:auto">كل الأفراد ←</button></div>${ms.slice(0, 3).map(m => memCard(m, c)).join('')}</div>`;
+  if (MODE === 'member') h += `<div class="foot-note">كل الأرقام تتحدث مباشرة عند أي تعديل من أمين الصندوق.</div>`;
+  return h;
+}
+
+/* ---- members ---- */
+function memCard(m, c) {
+  const x = c.M[m.id], t = target(DB, m), st = statusFor(x.contrib, t), pct = Math.min(100, Math.round(x.contrib / t * 100)), rem = Math.max(0, t - x.contrib);
+  const isDone = x.contrib >= t;
+  return `<button class="mem" data-mem="${m.id}"><div class="mem-top"><span class="rank ${isDone ? 'done' : ''}">${isDone ? '★' : '·'}</span><div class="mem-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}</span></div>
+  <div class="bar"><i class="${st.cls}" data-w="${pct}"></i></div>
+  <div class="mem-foot"><span>ساهم بـ <b class="num">${fmt(x.contrib)}</b>${SAR}</span><span>${rem > 0 ? 'متبقٍ ' + fmt(rem) + SAR : 'رصيده ' + fmt(x.balance) + SAR}</span></div></button>`;
+}
+function membersBody(c) {
+  const ms = sortedMembers(DB, c);
+  const tot = ms.reduce((s, m) => s + c.M[m.id].contrib, 0);
+  let h = `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الأفراد</h2><span class="cnt">${arD(ms.length)} فرد</span></div>`;
+  h += ms.map(m => memCard(m, c)).join('');
+  h += `<div class="total-row"><span>إجمالي المساهمات</span><b class="num">${fmt(tot)}${SAR}</b></div>`;
+  if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:12px" id="addMember">＋ إضافة فرد جديد</button>`;
+  const inactive = DB.members.filter(m => m.active === false);
+  if (MODE === 'admin' && inactive.length) h += `<div class="small muted" style="margin-top:12px">أفراد موقوفون: ${inactive.map(m => `<button class="lnk" data-mem="${m.id}">${esc(m.name)}</button>`).join('، ')}</div>`;
+  return h + '</div>';
+}
+function openMember(id) {
+  const c = compute(DB), m = DB.members.find(x => x.id === id), x = c.M[id], t = target(DB, m);
+  const pct = Math.min(100, Math.round(x.contrib / t * 100)), st = statusFor(x.contrib, t);
+  const myEntries = DB.entries.filter(e => (e.alloc && e.alloc[id] !== undefined) || e.memberId === id || (e.reversalOf && (DB.entries.find(o => o.id === e.reversalOf) || {}).memberId === id)).sort(byDate).reverse();
+  const parts = DB.investments.filter(i => i.shares && i.shares[id] && i.status !== 'cancelled');
+  let h = `<div class="md-head"><div class="md-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}${m.completedRank ? ' · الترتيب ' + arD(m.completedRank) : ''}</span>
+  <div class="small muted" style="margin-top:8px">الرصيد الحالي</div><div class="md-bal num">${fmt(x.balance)}${SAR}</div></div>
+  <div class="card"><div class="small muted" style="display:flex;justify-content:space-between"><span>التقدم نحو المستهدف (${fmt(t)})</span><b>${arD(pct)}٪</b></div><div class="bar"><i class="${st.cls}" data-w="${pct}"></i></div>
+  <div style="margin-top:8px">
+  <div class="stat"><span>إجمالي مساهماته</span><b>${fmt(x.contrib)}${SAR}</b></div>
+  <div class="stat"><span>منها مستثمر الآن</span><b>${fmt(x.inv)}${SAR}</b></div>
+  <div class="stat"><span>نقد غير مستثمر</span><b>${fmt(x.cash)}${SAR}</b></div>
+  <div class="stat"><span>أرباح محققة</span><b style="color:var(--good)">+${fmt(x.profit)}${SAR}</b></div>
+  ${x.spent ? `<div class="stat"><span>نصيبه من المصروفات</span><b style="color:var(--bad)">−${fmt(x.spent)}${SAR}</b></div>` : ''}
+  <div class="stat"><span>أرباح متوقعة</span><b style="color:var(--gold2)">≈ ${fmt(x.expected)}${SAR}</b></div></div></div>
+  <div class="sec"><div class="sh"><h2 style="font-size:14px">نمو رصيده</h2></div><div class="card">${lineChart(x.series, 110)}</div></div>
+  <div class="sec"><div class="sh"><h2 style="font-size:14px">مشاركته في الاستثمارات</h2></div>${parts.length ? `<div class="card">${parts.map(i => {
+    const share = i.shares[id], p = i.status === 'completed' ? ((DB.entries.find(e => e.id === i.maturityEntryId) || {}).profit || {})[id] || 0 : expProfit(i) * share / i.principal;
+    return `<div class="stat"><span>${esc(i.title)}<br><span class="small muted">حصته ${fmt(share)} من ${fmt(i.principal)} (${arD((share / i.principal * 100).toFixed(1))}٪)</span></span><b style="color:${i.status === 'completed' ? 'var(--good)' : 'var(--gold2)'}">${i.status === 'completed' ? '+' : '≈ '}${fmt(p)}</b></div>`;
+  }).join('')}</div>` : '<div class="empty small">لا يشارك في استثمار حاليًا</div>'}</div>
+  <div class="sec"><div class="sh"><h2 style="font-size:14px">سجل حركاته</h2><span class="cnt">${arD(myEntries.length)}</span></div><div class="card" style="padding:0">${myEntries.map(e => ledgerRow(e, id)).join('') || '<div class="empty">لا حركات</div>'}</div></div>
+  <div class="btn-row" style="margin-top:14px"><button class="btn gold" id="cert">📜 شهادة مساهمة</button><button class="btn ghost" id="stmt">🧾 كشف حساب</button></div>`;
+  if (MODE === 'admin') h += `<div class="sec"><div class="sh"><h2 style="font-size:14px">إجراءات المدير</h2></div>
+  <div class="btn-row"><button class="btn" id="mDep">＋ إيداع</button><button class="btn ghost" id="mWd">− سحب</button></div>
+  <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="mWa">💬 تذكير واتساب</button><button class="btn ghost" id="mEdit">✏️ تعديل</button></div></div>`;
+  sheet('تفاصيل الفرد', h, (b, close) => {
+    requestAnimationFrame(() => $$('.bar>i[data-w]', b).forEach(el => el.style.width = el.dataset.w + '%'));
+    $('#cert', b).onclick = () => certificate(m, x);
+    $('#stmt', b).onclick = () => statement(m, x, myEntries);
+    $$('[data-undo]', b).forEach(btn => btn.onclick = () => { close(); undoEntry(btn.dataset.undo); });
+    if (MODE !== 'admin') return;
+    $('#mDep', b).onclick = () => { close(); formContribution(id); };
+    $('#mWd', b).onclick = () => { close(); formWithdrawal(id); };
+    $('#mWa', b).onclick = () => remind(m, x);
+    $('#mEdit', b).onclick = () => { close(); formEditMember(id); };
+  });
+}
+
+/* ---- ledger ---- */
+function ledgerRow(e, forMember) {
+  const voided = !!e.reversedBy;
+  let cls = IN_TYPES[e.type] ? 'in' : 'out', sign = IN_TYPES[e.type] ? '+ ' : '− ';
+  if (e.type === 'invest') { cls = 'iv'; sign = '⇄ '; }
+  if (e.type === 'reversal') { cls = 'fix'; sign = '↺ '; }
+  let amt = e.amount;
+  if (forMember && e.alloc && e.alloc[forMember] !== undefined && (e.type === 'expense' || e.type === 'maturity' || e.type === 'invest')) {
+    amt = Math.abs(e.type === 'maturity' ? (e.profit || {})[forMember] || 0 : e.alloc[forMember]);
+    if (e.type === 'maturity') sign = '+ ربح ';
+  }
+  const canUndo = MODE === 'admin' && isLive(e);
+  return `<div class="lg ${voided ? 'void' : ''}"><span class="dot ${cls}"></span><div class="lg-b"><div class="lg-d">${esc(e.desc)}${voided ? '<span class="tag">مُصحَّح</span>' : ''}</div>${e.note ? `<div class="lg-n">${esc(e.note)}</div>` : ''}<div class="lg-t">${dateBoth(e.date)}${canUndo ? ` · <button class="lnk" data-undo="${e.id}">تصحيح</button>` : ''}</div></div><div class="lg-a ${cls}">${sign}${fmt(amt)}</div></div>`;
+}
+function ledgerBody() {
+  let list = DB.entries.slice().sort(byDate).reverse();
+  if (ledgerFilter === 'in') list = list.filter(e => IN_TYPES[e.type]);
+  if (ledgerFilter === 'out') list = list.filter(e => e.type === 'withdrawal' || e.type === 'expense');
+  if (ledgerFilter === 'inv') list = list.filter(e => e.type === 'invest' || e.type === 'maturity');
+  if (ledgerFilter === 'fix') list = list.filter(e => e.type === 'reversal' || e.reversedBy);
+  const per = (DB.periods || []).find(p => p.id === ledgerPeriod);
+  if (per) list = list.filter(e => e.date >= per.start && e.date <= per.end);
+  const f = [['all', 'الكل'], ['in', 'وارد'], ['out', 'صادر'], ['inv', 'استثمار'], ['fix', 'تصحيحات']];
+  let h = `<div class="sec"><div class="filters">${f.map(([k, l]) => `<button data-lf="${k}" class="${ledgerFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  if ((DB.periods || []).length) h += `<select class="inp" id="lPer" style="margin-bottom:8px"><option value="all">كل الفترات</option>${DB.periods.map(p => `<option value="${p.id}" ${ledgerPeriod === p.id ? 'selected' : ''}>${esc(p.name)}${p.status === 'closed' ? ' 🔒' : ''}</option>`).join('')}</select>`;
+  if (!list.length) return h + '<div class="empty">لا توجد حركات</div></div>';
+  let cur = '';
+  list.forEach(e => {
+    const mk = fmtHM(e.date);
+    if (mk !== cur) { if (cur) h += '</div>'; h += `<div class="lg-month">${mk}</div><div class="card" style="padding:0">`; cur = mk; }
+    h += ledgerRow(e);
+  });
+  const c = compute(DB);
+  return h + `</div><div class="total-row" style="margin-top:12px"><span>النقد المتاح الآن</span><b class="num">${fmt(c.cash)}${SAR}</b></div></div>`;
+}
+
+/* ---- investments ---- */
+function investBody(c) {
+  const list = DB.investments.slice().sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || (b.start || '').localeCompare(a.start || ''));
+  let h = `<div class="sec"><div class="grid2"><div class="kpi"><div class="v num">${fmt(c.inv)}</div><div class="l">مستثمر الآن</div></div><div class="kpi"><div class="v num" style="color:var(--gold2)">≈ ${fmt(c.expected)}</div><div class="l">أرباح متوقعة</div></div></div></div><div class="sec">`;
+  if (!list.length) h += '<div class="empty">لا توجد استثمارات</div>';
+  list.forEach(i => {
+    const st = invState(i), md = maturity(i), n = Object.keys(i.shares || {}).length;
+    const prog = i.status === 'active' && i.start ? Math.min(100, Math.max(0, (Date.now() - new Date(i.start)) / (new Date(md) - new Date(i.start)) * 100)) : 100;
+    const profit = i.status === 'completed' ? i.finalProfit : expProfit(i);
+    const parts = Object.entries(i.shares || {}).sort((a, b) => b[1] - a[1]);
+    h += `<div class="inv ${i.status === 'completed' ? 'done' : i.status === 'cancelled' ? 'cancel' : ''}" style="${i.status === 'completed' ? 'padding-bottom:90px' : ''}">
+    ${i.status === 'completed' ? '<div class="stamp ok"><span>مكتمل<br>✓</span></div>' : ''}
+    <div class="inv-h"><div class="inv-t">${esc(i.title)}</div><span class="ibadge ${st.cls}">${st.label}</span></div>
+    <div class="inv-s">${fmtH(i.start)} ← ${md ? fmtH(md) : ''} · ${arD(n)} مشارك</div>
+    <div class="inv-g"><div><div class="l">رأس المال</div><div class="v">${fmt(i.principal)}${SAR}</div></div><div><div class="l">العائد السنوي</div><div class="v">${i.rate}٪</div></div>
+    <div><div class="l">المدة</div><div class="v">${arD(i.months)} أشهر</div></div><div><div class="l">${i.status === 'completed' ? 'الربح المحقق' : i.manualProfit != null ? 'الربح (مُدخل)' : 'الربح المتوقع'}</div><div class="v">${i.status === 'completed' ? '' : '≈ '}${fmt(profit)}${SAR}</div></div></div>
+    ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>` : ''}
+    <details class="inv-parts"><summary class="small" style="cursor:pointer;color:#E9C46A">المشاركون وحصصهم</summary>${parts.map(([k, v]) => `<div class="r"><span>${esc(memName(DB, k))}</span><span>${fmt(v)} · ${i.status === 'completed' ? '+' : '≈'}${fmt(i.status === 'completed' ? ((DB.entries.find(e => e.id === i.maturityEntryId) || {}).profit || {})[k] : profit * v / i.principal)}</span></div>`).join('')}</details>
+    ${MODE === 'admin' && i.status === 'active' ? `<div class="inv-btns"><button data-close="${i.id}">✔ إقفال وتوزيع الربح</button><button data-ivedit="${i.id}">✏️ تعديل</button><button data-cancel="${i.id}">✕ إلغاء</button></div>` : ''}
+    ${MODE === 'admin' && i.status === 'completed' ? `<div class="inv-btns"><button data-reopen="${i.id}">↺ إعادة فتح</button></div>` : ''}</div>`;
+  });
+  if (MODE === 'admin') h += `<button class="btn gold block" id="newInv">＋ استثمار جديد</button>`;
+  return h + '</div>';
+}
+
+/* ---- more / admin ---- */
+function moreBody() {
+  const periods = (DB.periods || []).slice().sort((a, b) => b.start.localeCompare(a.start));
+  let h = `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الفترات والتقارير</h2><span class="cnt">${arD(periods.length)}</span></div>`;
+  if (!periods.length) h += `<div class="empty">لا توجد فترات بعد${MODE === 'admin' ? '. أنشئ فترة (شهر، ربع، نصف سنة، سنة) لتقفلها بتقرير ختامي.' : ''}</div>`;
+  periods.forEach(p => {
+    h += `<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><b>${esc(p.name)}</b><div class="small muted">${fmtH(p.start)} ← ${fmtH(p.end)}</div></div>
+    <span class="pill ${p.status === 'closed' ? 'gray' : 'blue'}">${p.status === 'closed' ? '🔒 مقفلة' : 'مفتوحة'}</span>
+    <div class="btn-row" style="width:100%">${p.status === 'closed' ? `<button class="btn ghost" data-rep="${p.id}">📄 التقرير الختامي</button>` : `<button class="btn ghost" data-prev="${p.id}">👁️ معاينة</button>`}
+    ${MODE === 'admin' ? (p.status === 'closed' ? `<button class="btn ghost" data-popen="${p.id}">↺ إعادة فتح</button>` : `<button class="btn" data-pclose="${p.id}">🔒 إقفال الفترة</button>`) : ''}</div></div>`;
+  });
+  if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:10px" id="newPeriod">＋ فترة جديدة</button>`;
+  h += `</div>${targetsSection()}`;
+  if (MODE === 'admin') {
+    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>لوحة المدير</h2></div>
+    ${menu('code', '🔑', 'رمز دخول العائلة', 'الرمز الحالي: ' + DB.settings.familyCode + ' — غيّره أو أرسله')}
+    ${menu('backup', '💾', 'نسخة احتياطية', 'تنزيل كل البيانات في ملف تحفظه عندك')}
+    ${menu('excel', '📊', 'تصدير Excel', 'الأفراد والحركات والاستثمارات')}
+    ${menu('restore', '📥', 'استعادة من نسخة', 'استيراد ملف نسخة احتياطية')}
+    ${menu('audit', '🧾', 'سجل التعديلات', 'كل عملية: ماذا ومتى')}
+    ${menu('settings', '🎯', 'إعدادات الصندوق', 'المستهدف الافتراضي: ' + fmt(DB.settings.target))}
+    ${menu('handover', '🤝', 'تسليم الأمانة', 'نقل الإدارة لأمين جديد')}
+    ${menu('logout', '🚪', 'تسجيل الخروج', '')}</div>`;
+  } else {
+    h += `<div class="sec">${menu('mlogout', '🚪', 'خروج من حساب العائلة', 'يُطلب الرمز مرة أخرى')}</div>`;
+  }
+  return h;
+}
+const menu = (k, ic, t, s) => `<button class="menu-item" data-menu="${k}"><span class="ic">${ic}</span><span class="t">${t}${s ? `<small>${esc(s)}</small>` : ''}</span><span class="muted">‹</span></button>`;
+
+function targetsSection() {
+  const gs = DB.targets || [];
+  let h = `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المستهدفات</h2><span class="cnt">${arD(gs.length)}</span></div>`;
+  if (!gs.length) h += '<div class="empty">لا توجد مستهدفات</div>';
+  gs.forEach(g => {
+    const T = g.rows.reduce((s, r) => s + Number(r.target || 0), 0), D = g.rows.reduce((s, r) => s + Number(r.achieved || 0), 0), pct = T ? Math.min(100, Math.round(D / T * 100)) : 0;
+    const closed = g.status === 'closed';
+    h += `<div class="card" style="position:relative;overflow:hidden;${closed ? 'padding-bottom:90px' : ''}">
+    ${closed ? `<div class="stamp ${g.closedResult === 'achieved' ? 'ok' : ''}"><span>${g.closedResult === 'achieved' ? 'تم<br>الإنجاز ✓' : 'لم<br>يكتمل ✕'}</span></div>` : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-family:Cairo">${esc(g.title)}</b><b class="num" style="color:var(--gold2)">${arD(pct)}٪</b></div>
+    <div class="bar"><i class="done" data-w="${pct}"></i></div>
+    <div class="mem-foot"><span>المنجز ${fmt(D)}</span><span>المستهدف ${fmt(T)}</span></div>
+    <div style="margin-top:8px">${g.rows.map(r => { const ok = r.target > 0 && r.achieved >= r.target; return `<div class="stat"><span>${esc(r.name)} <span class="small muted">(${fmt(r.achieved)}/${fmt(r.target)})</span></span><span><span class="pill ${ok ? 'done' : 'mid'}">${ok ? 'تحقق' : 'جاري'}</span>${MODE === 'admin' && !closed ? ` <button class="lnk" data-trow="${g.id}|${r.id}">تعديل</button>` : ''}</span></div>`; }).join('')}</div>
+    ${MODE === 'admin' ? `<div class="btn-row" style="margin-top:10px">${closed ? `<button class="btn ghost" data-topen="${g.id}">↺ إعادة فتح</button>` : `<button class="btn ghost" data-tadd="${g.id}">＋ فرد</button><button class="btn ghost" data-tclose="${g.id}">🔒 إغلاق</button>`}<button class="btn ghost" data-tdel="${g.id}">🗑️</button></div>` : ''}</div>`;
+  });
+  if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:10px" id="newTarget">＋ مستهدف جديد</button>`;
+  return h + '</div>';
+}
+
+/* ================= WIRING ================= */
+function wireGuest() {
+  const ml = $('#memberLogin'); if (ml) ml.onclick = formMemberLogin;
+  const al = $('#adminLogin'); if (al) al.onclick = formAdminLogin;
+}
+function wireMain(c) {
+  $$('.nav button').forEach(b => b.onclick = () => { TAB = b.dataset.tab; window.scrollTo(0, 0); render(); window.scrollTo(0, 0); });
+  $$('[data-go]').forEach(b => b.onclick = () => { TAB = b.dataset.go; render(); window.scrollTo(0, 0); });
+  $$('[data-mem]').forEach(b => b.onclick = () => openMember(b.dataset.mem));
+  $$('[data-lf]').forEach(b => b.onclick = () => { ledgerFilter = b.dataset.lf; render(); });
+  const lp = $('#lPer'); if (lp) lp.onchange = () => { ledgerPeriod = lp.value; render(); };
+  $$('[data-rep]').forEach(b => b.onclick = () => { const p = DB.periods.find(x => x.id === b.dataset.rep); periodReport(p, p.report || buildReport(DB, p)); });
+  $$('[data-prev]').forEach(b => b.onclick = () => { const p = DB.periods.find(x => x.id === b.dataset.prev); periodReport(p, buildReport(DB, p), true); });
+  $$('[data-menu]').forEach(b => b.onclick = () => menuAction(b.dataset.menu));
+  if (MODE !== 'admin') return;
+  $('#fab').onclick = quickAdd;
+  $$('[data-undo]').forEach(b => b.onclick = () => undoEntry(b.dataset.undo));
+  const am = $('#addMember'); if (am) am.onclick = formAddMember;
+  const ni = $('#newInv'); if (ni) ni.onclick = formInvest;
+  $$('[data-close]').forEach(b => b.onclick = () => formCloseInvestment(b.dataset.close));
+  $$('[data-ivedit]').forEach(b => b.onclick = () => formEditInvestment(b.dataset.ivedit));
+  $$('[data-cancel]').forEach(b => b.onclick = () => { const iv = DB.investments.find(i => i.id === b.dataset.cancel); undoEntry(iv.investEntryId, 'إلغاء الاستثمار'); });
+  $$('[data-reopen]').forEach(b => b.onclick = () => { const iv = DB.investments.find(i => i.id === b.dataset.reopen); undoEntry(iv.maturityEntryId, 'إعادة فتح الاستثمار'); });
+  const np = $('#newPeriod'); if (np) np.onclick = formPeriod;
+  $$('[data-pclose]').forEach(b => b.onclick = () => closePeriod(b.dataset.pclose));
+  $$('[data-popen]').forEach(b => b.onclick = () => reopenPeriod(b.dataset.popen));
+  const nt = $('#newTarget'); if (nt) nt.onclick = formNewTarget;
+  $$('[data-tadd]').forEach(b => b.onclick = () => formTargetRow(b.dataset.tadd));
+  $$('[data-trow]').forEach(b => { const [g, r] = b.dataset.trow.split('|'); b.onclick = () => formTargetRow(g, r); });
+  $$('[data-tclose]').forEach(b => b.onclick = () => closeTarget(b.dataset.tclose));
+  $$('[data-topen]').forEach(b => b.onclick = () => mutate(db => { const g = db.targets.find(x => x.id === b.dataset.topen); g.status = 'open'; delete g.closedResult; return 'إعادة فتح مستهدف: ' + g.title; }, 'مستهدف'));
+  $$('[data-tdel]').forEach(b => b.onclick = () => confirmSheet('حذف مستهدف', 'سيُحذف هذا المستهدف من القائمة (لا يؤثر على الأرصدة). متأكد؟', 'حذف', () => mutate(db => { const g = db.targets.find(x => x.id === b.dataset.tdel); db.targets = db.targets.filter(x => x.id !== g.id); return 'حذف مستهدف: ' + g.title; }, 'مستهدف'), true));
+}
+
+/* ================= FORMS ================= */
+function quickAdd() {
+  sheet('إضافة', `${menu('q1', '💵', 'مساهمة / إيداع من فرد', 'تحويل وصل من أحد الأفراد')}${menu('q2', '📈', 'استثمار جديد', 'من النقد المتاح')}${menu('q3', '🧾', 'مصروف من الصندوق', 'يُخصم من النقد المتاح')}${menu('q4', '↩️', 'سحب لفرد', 'إرجاع جزء من نقد فرد')}${menu('q5', '👤', 'فرد جديد', '')}`, (b, close) => {
+    const go = {q1: formContribution, q2: formInvest, q3: formExpense, q4: formWithdrawal, q5: formAddMember};
+    $$('[data-menu]', b).forEach(x => x.onclick = () => { close(); go[x.dataset.menu](); });
+  });
+}
+function formContribution(mid) {
+  sheet('مساهمة من فرد', `<div class="f"><label>الفرد</label><select class="inp" id="m">${memberOptions(DB, mid)}</select></div>
+  <div class="f"><label>المبلغ (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal" placeholder="0"></div>
+  <div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
+  <div class="f"><label>ملاحظة (اختياري)</label><input class="inp" id="n" placeholder="مثال: تحويل بنكي"></div>
+  <button class="btn gold block" id="ok">حفظ المساهمة</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.contribution(db, $('#m', b).value, +$('#a', b).value, hVal(b, 'd'), $('#n', b).value.trim()), 'مساهمة')) close(); };
+  });
+}
+function formWithdrawal(mid) {
+  const c = compute(DB);
+  sheet('سحب لفرد', `<div class="f"><label>الفرد</label><select class="inp" id="m">${memberOptions(DB, mid)}</select><div class="small muted" id="cashInfo"></div></div>
+  <div class="f"><label>المبلغ (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal"></div>
+  <div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
+  <div class="f"><label>السبب</label><input class="inp" id="n"></div><button class="btn bad block" id="ok">تسجيل السحب</button>`, (b, close) => {
+    const info = () => $('#cashInfo', b).textContent = 'نقده المتاح: ' + fmt(c.M[$('#m', b).value].cash) + SAR;
+    $('#m', b).onchange = info; info();
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.withdrawal(db, $('#m', b).value, +$('#a', b).value, hVal(b, 'd'), $('#n', b).value.trim()), 'سحب')) close(); };
+  });
+}
+function formExpense() {
+  const c = compute(DB);
+  sheet('مصروف من الصندوق', `<div class="banner" style="margin-top:0">النقد المتاح: ${fmt(c.cash)}${SAR}. المصروف يُخصم من أصحاب النقد بنسبة نقدهم.</div><div style="height:10px"></div>
+  <div class="f"><label>البيان</label><input class="inp" id="t" placeholder="مثال: مساعدة / رسوم بنكية"></div>
+  <div class="f"><label>المبلغ (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal"></div>
+  <div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
+  <div class="f"><label>ملاحظة</label><input class="inp" id="n"></div><button class="btn bad block" id="ok">تسجيل المصروف</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.expense(db, +$('#a', b).value, hVal(b, 'd'), $('#t', b).value.trim(), $('#n', b).value.trim()), 'مصروف')) close(); };
+  });
+}
+function formInvest() {
+  const c = compute(DB);
+  const holders = DB.members.filter(m => c.M[m.id] && c.M[m.id].cash > 0.001);
+  if (!holders.length) { toast('لا يوجد نقد متاح للاستثمار حاليًا', true); return; }
+  sheet('استثمار جديد', `<div class="f"><label>اسم الاستثمار</label><input class="inp" id="t" placeholder="مثال: وديعة 6 أشهر"></div>
+  <div class="grid2"><div class="f"><label>نسبة العائد السنوي %</label><input class="inp" id="r" type="number" step="0.01" inputmode="decimal"></div><div class="f"><label>المدة (أشهر)</label><input class="inp" id="mo" type="number" inputmode="numeric"></div></div>
+  <div class="f"><label>تاريخ بداية الاستثمار (هجري)</label>${hInput('s')}</div>
+  <div class="f"><label>المشاركون (النقد المتاح لكل فرد)</label><div class="btn-row" style="margin-bottom:6px"><button class="btn ghost" id="all" style="padding:7px">تحديد الكل بكامل نقدهم</button><button class="btn ghost" id="none" style="padding:7px">إلغاء الكل</button></div>
+  ${holders.map(m => `<div class="part"><input type="checkbox" data-pc="${m.id}"><span class="n">${esc(m.name)}<small>متاح ${fmt(c.M[m.id].cash)}</small></span><input class="inp" type="number" inputmode="decimal" data-pv="${m.id}" placeholder="0"></div>`).join('')}</div>
+  <div class="sumline" id="sum"></div><button class="btn gold block" id="ok">إنشاء الاستثمار</button>`, (b, close) => {
+    const upd = () => { let s = 0; $$('[data-pv]', b).forEach(i => { const on = $(`[data-pc="${i.dataset.pv}"]`, b).checked; i.disabled = !on; if (on) s += +i.value || 0; }); $('#sum', b).innerHTML = `<span>رأس المال (مجموع الحصص)</span><span>${fmt(s)}${SAR}</span>`; $('#sum', b).className = 'sumline ' + (s > 0 ? 'ok' : ''); return s; };
+    $$('[data-pc]', b).forEach(cb => cb.onchange = () => { const i = $(`[data-pv="${cb.dataset.pc}"]`, b); if (cb.checked && !i.value) i.value = c.M[cb.dataset.pc].cash; if (!cb.checked) i.value = ''; upd(); });
+    $$('[data-pv]', b).forEach(i => i.oninput = upd);
+    $('#all', b).onclick = () => { $$('[data-pc]', b).forEach(cb => { cb.checked = true; $(`[data-pv="${cb.dataset.pc}"]`, b).value = c.M[cb.dataset.pc].cash; }); upd(); };
+    $('#none', b).onclick = () => { $$('[data-pc]', b).forEach(cb => { cb.checked = false; $(`[data-pv="${cb.dataset.pc}"]`, b).value = ''; }); upd(); };
+    upd();
+    $('#ok', b).onclick = async () => {
+      const shares = {}; $$('[data-pc]', b).forEach(cb => { if (cb.checked) shares[cb.dataset.pc] = +$(`[data-pv="${cb.dataset.pc}"]`, b).value || 0; });
+      const principal = Object.values(shares).reduce((s, v) => s + v, 0), s = hVal(b, 's');
+      if (await mutate(db => A.invest(db, {title: $('#t', b).value.trim(), principal, rate: +$('#r', b).value, months: +$('#mo', b).value, start: s, date: s, shares}), 'استثمار')) close();
+    };
+  });
+}
+function formCloseInvestment(id) {
+  const iv = DB.investments.find(i => i.id === id), est = expProfit(iv);
+  sheet('إقفال الاستثمار وتوزيع الربح', `<p style="margin-top:0"><b>${esc(iv.title)}</b> — رأس المال ${fmt(iv.principal)}${SAR}</p>
+  <div class="f"><label>الربح الفعلي من البنك (ر.س)</label><input class="inp" id="p" type="number" step="0.01" inputmode="decimal" value="${r2(est)}"><div class="small muted">المتوقع ≈ ${fmt(est)}. عدّله حسب كشف البنك.</div></div>
+  <div class="f"><label>تاريخ الاستحقاق (هجري)</label>${hInput('d', maturity(iv) && maturity(iv) <= todayISO() ? maturity(iv) : todayISO())}</div>
+  <div class="small muted" style="margin-bottom:12px">يرجع رأس المال + الربح إلى نقد المشاركين (${arD(Object.keys(iv.shares).length)} فرد) كلٌّ حسب حصته.</div>
+  <button class="btn gold block" id="ok">إقفال وتوزيع</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.closeInvestment(db, id, +$('#p', b).value, hVal(b, 'd')), 'إقفال استثمار')) close(); };
+  });
+}
+function formEditInvestment(id) {
+  const iv = DB.investments.find(i => i.id === id);
+  sheet('تعديل الاستثمار', `<div class="small muted" style="margin-bottom:10px">تغيير رأس المال أو المشاركين يتم بإلغاء الاستثمار وإنشائه من جديد.</div>
+  <div class="f"><label>الاسم</label><input class="inp" id="t" value="${esc(iv.title)}"></div>
+  <div class="grid2"><div class="f"><label>العائد السنوي %</label><input class="inp" id="r" type="number" step="0.01" value="${iv.rate}"></div><div class="f"><label>المدة (أشهر)</label><input class="inp" id="mo" type="number" value="${iv.months}"></div></div>
+  <div class="f"><label>تاريخ البداية</label>${hInput('s', iv.start)}</div>
+  <div class="f"><label>الربح المعروف مسبقًا (اختياري)</label><input class="inp" id="mp" type="number" step="0.01" value="${iv.manualProfit ?? ''}" placeholder="فاضي = حساب تلقائي"></div>
+  <button class="btn gold block" id="ok">حفظ</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => { const x = db.investments.find(i => i.id === id); x.title = $('#t', b).value.trim() || x.title; x.rate = +$('#r', b).value; x.months = +$('#mo', b).value || x.months; x.start = hVal(b, 's'); const mp = $('#mp', b).value.trim(); if (mp === '') delete x.manualProfit; else x.manualProfit = +mp; return 'تعديل استثمار: ' + x.title; }, 'تعديل استثمار')) close(); };
+  });
+}
+function undoEntry(id, label) {
+  const e = DB.entries.find(x => x.id === id); if (!e) return;
+  sheet(label || 'تصحيح قيد', `<p style="margin-top:0">سيُسجَّل <b>قيد تصحيح</b> بتاريخ اليوم يلغي أثر:<br><b>${esc(e.desc)}</b> — ${fmt(e.amount)}${SAR}<br><span class="small muted">${dateBoth(e.date)}</span></p>
+  <p class="small muted">القيد الأصلي يبقى ظاهرًا مشطوبًا للشفافية. لا يوجد حذف نهائي.</p>
+  <div class="f"><label>سبب التصحيح</label><input class="inp" id="r" placeholder="مثال: المبلغ أُدخل خطأ"></div>
+  <button class="btn bad block" id="ok">تأكيد التصحيح</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.reverse(db, id, $('#r', b).value.trim()), label || 'تصحيح قيد')) close(); };
+  });
+}
+function formAddMember() {
+  sheet('فرد جديد', `<div class="f"><label>الاسم</label><input class="inp" id="n"></div><div class="f"><label>رقم الجوال (اختياري — للتذكير، لا يظهر للأعضاء)</label><input class="inp" id="p" type="tel" placeholder="9665XXXXXXXX" dir="ltr"></div>
+  <div class="small muted" style="margin-bottom:10px">أضف مساهمته بعد الإنشاء كـ "مساهمة" ليبقى السجل دقيقًا.</div><button class="btn gold block" id="ok">إضافة</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { const n = $('#n', b).value.trim(); if (!n) return toast('اكتب الاسم', true); if (await mutate(db => { db.members.push({id: 'm' + uid(), name: n, phone: $('#p', b).value.trim(), active: true}); return 'إضافة فرد: ' + n; }, 'فرد جديد')) close(); };
+  });
+}
+function formEditMember(id) {
+  const m = DB.members.find(x => x.id === id);
+  sheet('تعديل بيانات الفرد', `<div class="f"><label>الاسم</label><input class="inp" id="n" value="${esc(m.name)}"></div><div class="f"><label>الجوال (للتذكير)</label><input class="inp" id="p" type="tel" dir="ltr" value="${esc(m.phone || '')}" placeholder="9665XXXXXXXX"></div>
+  <div class="f"><label>مستهدف خاص (اختياري)</label><input class="inp" id="t" type="number" value="${m.target || ''}" placeholder="الافتراضي ${fmt(DB.settings.target)}"></div>
+  <label class="part"><input type="checkbox" id="act" ${m.active !== false ? 'checked' : ''}><span class="n">فرد نشط (يظهر في القائمة)</span></label><div style="height:10px"></div>
+  <button class="btn gold block" id="ok">حفظ</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => { const x = db.members.find(y => y.id === id); x.name = $('#n', b).value.trim() || x.name; x.phone = $('#p', b).value.trim(); const t = $('#t', b).value.trim(); if (t) x.target = +t; else delete x.target; x.active = $('#act', b).checked; return 'تعديل بيانات: ' + x.name; }, 'تعديل فرد')) close(); };
+  });
+}
+function remind(m, x) {
+  const rem = Math.max(0, target(DB, m) - x.contrib);
+  const txt = rem > 0
+    ? `السلام عليكم ورحمة الله ${m.name} 🌿\nتذكير لطيف من صندوق آل مبشر بن عبدالله:\nمساهمتك الحالية ${fmt(x.contrib)} ريال، والمتبقي لاكتمال المستهدف ${fmt(rem)} ريال.\nجزاك الله خير وبارك فيك.`
+    : `السلام عليكم ورحمة الله ${m.name} 🌿\nمن صندوق آل مبشر بن عبدالله: رصيدك الحالي ${fmt(x.balance)} ريال، وأرباحك المتوقعة ≈ ${fmt(x.expected)} ريال. شكرًا لالتزامك 🌟`;
+  const ph = (m.phone || '').replace(/\D/g, '');
+  window.open(`https://wa.me/${ph}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+/* ---- periods ---- */
+function buildReport(db, p) {
+  const before = compute(db, addDays(p.start, -1)), after = compute(db, p.end);
+  const inP = db.entries.filter(e => isLive(e) && e.date >= p.start && e.date <= p.end);
+  const sum = t => inP.filter(e => t.includes(e.type)).reduce((s, e) => s + e.amount, 0);
+  const profit = inP.filter(e => e.type === 'maturity').reduce((s, e) => s + Object.values(e.profit || {}).reduce((a, v) => a + v, 0), 0);
+  const members = db.members.map(m => ({name: m.name, contribIn: r2(inP.reduce((s, e) => s + ((e.contrib || {})[m.id] || 0), 0)), contrib: r2(after.M[m.id].contrib), balance: r2(after.M[m.id].balance), profit: r2(inP.reduce((s, e) => s + ((e.profit || {})[m.id] || 0), 0)), done: after.M[m.id].contrib >= target(db, m)}));
+  return {opening: before.assets, closing: after.assets, cashEnd: after.cash, invEnd: after.inv, contrib: r2(sum(['contribution', 'opening'])), out: r2(sum(['withdrawal', 'expense'])), profit: r2(profit), invested: r2(sum(['invest'])), count: inP.length, members, generatedAt: Date.now()};
+}
+function periodReport(p, R, preview) {
+  const rows = R.members.map(m => `<tr><td>${esc(m.name)}${m.done ? ' ★' : ''}</td><td>${fmt(m.contribIn)}</td><td>${fmt(m.profit)}</td><td>${fmt(m.balance)}</td></tr>`).join('');
+  printView(`<div class="rep"><div class="cert" style="padding:18px;margin-bottom:14px"><div class="k">صندوق آل مبشر بن عبدالله</div><h1>${preview ? 'معاينة: ' : 'التقرير الختامي: '}${esc(p.name)}</h1><div class="small muted">${fmtH(p.start)} ← ${fmtH(p.end)}<br>${fmtG(p.start)} – ${fmtG(p.end)}</div></div>
+  <div class="tot"><div>رصيد البداية<b>${fmt(R.opening)}</b></div><div>رصيد النهاية<b>${fmt(R.closing)}</b></div><div>المساهمات خلال الفترة<b style="color:var(--good)">+${fmt(R.contrib)}</b></div><div>الأرباح المحققة<b style="color:var(--good)">+${fmt(R.profit)}</b></div><div>المصروفات والسحوبات<b style="color:var(--bad)">−${fmt(R.out)}</b></div><div>النقد / المستثمر بنهايتها<b>${fmt(R.cashEnd)} / ${fmt(R.invEnd)}</b></div></div>
+  <h3>الأفراد</h3><table><tr><th>الاسم</th><th>ساهم بالفترة</th><th>ربح بالفترة</th><th>الرصيد بنهايتها</th></tr>${rows}</table>
+  <p class="small muted" style="margin-top:14px">عدد الحركات: ${arD(R.count)} · ${p.closedAt ? 'أُقفلت بتاريخ ' + fmtH(new Date(p.closedAt).toISOString().slice(0, 10)) : 'الفترة مفتوحة — الأرقام قد تتغير'}</p></div>`);
+}
+function formPeriod() {
+  const last = (DB.periods || []).slice().sort((a, b) => b.end.localeCompare(a.end))[0];
+  const start = last ? addDays(last.end, 1) : (DB.settings.founded || todayISO());
+  sheet('فترة جديدة', `<div class="f"><label>اسم الفترة</label><input class="inp" id="n" placeholder="مثال: الربع الأول ١٤٤٨ / رمضان ١٤٤٨"></div>
+  <div class="f"><label>من (هجري)</label>${hInput('s', start)}</div><div class="f"><label>إلى (هجري)</label>${hInput('e', addDays(addMonths(start, 3), -1))}</div>
+  <div class="small muted" style="margin-bottom:10px">المدة على كيفك: شهر، ربع، نصف سنة، سنة. عند الإقفال تُقفل حركاتها ويُحفظ تقريرها.</div>
+  <button class="btn gold block" id="ok">إنشاء الفترة</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => {
+      const n = $('#n', b).value.trim(), s = hVal(b, 's'), e = hVal(b, 'e');
+      if (await mutate(db => {
+        if (!n) throw new Error('اكتب اسم الفترة'); if (!s || !e || e < s) throw new Error('تأكد من التواريخ');
+        const ov = (db.periods || []).find(p => !(e < p.start || s > p.end)); if (ov) throw new Error('تتداخل مع فترة: ' + ov.name);
+        db.periods = db.periods || []; db.periods.push({id: 'p' + uid(), name: n, start: s, end: e, status: 'open'}); return 'فترة جديدة: ' + n;
+      }, 'فترة')) close();
+    };
+  });
+}
+function closePeriod(id) {
+  const p = DB.periods.find(x => x.id === id);
+  if (todayISO() < p.end) return confirmSheet('الفترة لم تنتهِ', `الفترة تنتهي ${fmtH(p.end)}. إقفالها الآن يمنع إضافة حركات بتواريخ داخلها. تكمل؟`, 'إقفال الآن', () => doClose(id));
+  confirmSheet('إقفال الفترة', `سيتم إقفال <b>${esc(p.name)}</b> وحفظ تقريرها الختامي، ولن يمكن تعديل حركاتها (التصحيح يكون بقيد في الفترة الحالية).`, 'إقفال', () => doClose(id));
+}
+function doClose(id) { mutate(db => { const p = db.periods.find(x => x.id === id); p.report = buildReport(db, p); p.status = 'closed'; p.closedAt = Date.now(); return 'إقفال فترة: ' + p.name; }, 'إقفال فترة'); }
+function reopenPeriod(id) {
+  confirmSheet('إعادة فتح الفترة', 'سيُسجَّل في سجل التعديلات أنك أعدت فتحها. تكمل؟', 'إعادة فتح', () => mutate(db => { const p = db.periods.find(x => x.id === id); p.status = 'open'; delete p.report; delete p.closedAt; return 'إعادة فتح فترة: ' + p.name; }, 'إعادة فتح فترة'), true);
+}
+
+/* ---- targets ---- */
+function formNewTarget() {
+  sheet('مستهدف جديد', `<div class="f"><label>اسم المستهدف</label><input class="inp" id="n" placeholder="مثال: مستهدف رمضان"></div><button class="btn gold block" id="ok">إضافة</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { const n = $('#n', b).value.trim(); if (!n) return; if (await mutate(db => { db.targets = db.targets || []; db.targets.push({id: 't' + uid(), title: n, status: 'open', rows: []}); return 'مستهدف جديد: ' + n; }, 'مستهدف')) close(); };
+  });
+}
+function formTargetRow(gid, rid) {
+  const g = DB.targets.find(x => x.id === gid), r = rid ? g.rows.find(x => x.id === rid) : null;
+  sheet(r ? 'تعديل' : 'إضافة فرد للمستهدف', `<div class="f"><label>الاسم</label><input class="inp" id="n" list="mlist" value="${esc(r ? r.name : '')}"><datalist id="mlist">${DB.members.map(m => `<option value="${esc(m.name)}">`).join('')}</datalist></div>
+  <div class="grid2"><div class="f"><label>المستهدف</label><input class="inp" id="t" type="number" value="${r ? r.target : ''}"></div><div class="f"><label>المنجز</label><input class="inp" id="a" type="number" value="${r ? r.achieved : ''}"></div></div>
+  <div class="btn-row"><button class="btn gold" id="ok">حفظ</button>${r ? '<button class="btn ghost" id="del">حذف</button>' : ''}</div>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => { const gg = db.targets.find(x => x.id === gid); const n = $('#n', b).value.trim(); if (!n) throw new Error('اكتب الاسم'); if (rid) { const rr = gg.rows.find(x => x.id === rid); rr.name = n; rr.target = +$('#t', b).value || 0; rr.achieved = +$('#a', b).value || 0; } else gg.rows.push({id: 'r' + uid(), name: n, target: +$('#t', b).value || 0, achieved: +$('#a', b).value || 0}); return `مستهدف ${gg.title}: ${n}`; }, 'مستهدف')) close(); };
+    const d = $('#del', b); if (d) d.onclick = async () => { if (await mutate(db => { const gg = db.targets.find(x => x.id === gid); gg.rows = gg.rows.filter(x => x.id !== rid); return `حذف ${r.name} من ${gg.title}`; }, 'مستهدف')) close(); };
+  });
+}
+function closeTarget(gid) {
+  const g = DB.targets.find(x => x.id === gid), T = g.rows.reduce((s, r) => s + +r.target, 0), D = g.rows.reduce((s, r) => s + +r.achieved, 0), ok = T > 0 && D >= T;
+  confirmSheet('إغلاق المستهدف', ok ? 'المستهدف محقق — سيُختم بـ "تم الإنجاز".' : `المستهدف غير مكتمل (${arD(T ? Math.round(D / T * 100) : 0)}٪) — سيُختم بـ "لم يكتمل".`, 'إغلاق', () => mutate(db => { const gg = db.targets.find(x => x.id === gid); gg.status = 'closed'; gg.closedResult = ok ? 'achieved' : 'incomplete'; return 'إغلاق مستهدف: ' + gg.title; }, 'مستهدف'));
+}
+
+/* ---- certificate & statement ---- */
+function certificate(m, x) {
+  printView(`<div class="cert"><div class="k">FAMILY TREASURY · شهادة مساهمة</div><h1>صندوق آل مبشر بن عبدالله</h1><div class="small muted">يشهد الصندوق بأن</div>
+  <div class="who">${esc(m.name)}</div><p>ساهم في صندوق العائلة بإجمالي</p><div class="amt">${fmt(x.contrib)} ريال سعودي</div>
+  <p>ويبلغ رصيده الحالي ${fmt(x.balance)} ريال، بأرباح محققة ${fmt(x.profit)} ريال${m.completedRank ? '، وكان ترتيبه ' + arD(m.completedRank) + ' في إكمال المستهدف' : ''}.<br>جزاه الله خيرًا على صلة الرحم والتكاتف.</p>
+  <div class="sig"><span>التاريخ: ${fmtH(todayISO())}</span><span>أمين الصندوق</span></div></div>`);
+}
+function statement(m, x, entries) {
+  printView(`<div class="rep"><h1>كشف حساب: ${esc(m.name)}</h1><div class="small muted" style="text-align:center">صندوق آل مبشر بن عبدالله · ${fmtH(todayISO())}</div>
+  <div class="tot"><div>إجمالي المساهمات<b>${fmt(x.contrib)}</b></div><div>الرصيد الحالي<b>${fmt(x.balance)}</b></div><div>مستثمر<b>${fmt(x.inv)}</b></div><div>نقد<b>${fmt(x.cash)}</b></div><div>أرباح محققة<b>${fmt(x.profit)}</b></div><div>أرباح متوقعة<b>≈ ${fmt(x.expected)}</b></div></div>
+  <h3>الحركات</h3><table><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr>${entries.slice().reverse().map(e => `<tr style="${e.reversedBy ? 'text-decoration:line-through;opacity:.5' : ''}"><td>${fmtH(e.date)}</td><td>${esc(e.desc)}</td><td>${fmt(Math.abs((e.type === 'maturity' ? (e.profit || {})[m.id] : (e.alloc || {})[m.id]) ?? e.amount))}</td></tr>`).join('')}</table></div>`);
+}
+
+/* ---- admin menu ---- */
+function menuAction(k) {
+  if (k === 'mlogout') { try { localStorage.removeItem(LS_CODE); } catch (e) {} DB = null; TAB = 'home'; listenGuest(); return; }
+  if (k === 'logout') { if (DEMO) return; auth.signOut(); DB = null; TAB = 'home'; startViewer(); return; }
+  if (k === 'code') return formCode();
+  if (k === 'backup') { const name = `صندوق-آل-مبشر-نسخة-${todayISO()}.json`; download(name, JSON.stringify({kind: 'mubasher-fund-backup', at: Date.now(), db: DB}, null, 1), 'application/json'); toast('تم تنزيل النسخة ✓'); return; }
+  if (k === 'excel') return exportExcel();
+  if (k === 'restore') return formRestore();
+  if (k === 'audit') return sheet('سجل التعديلات', AUDIT.length ? '<div class="card" style="padding:0">' + AUDIT.slice().reverse().slice(0, 300).map(a => `<div class="lg"><span class="dot fix"></span><div class="lg-b"><div class="lg-d">${esc(a.detail || a.action)}</div><div class="lg-t">${esc(a.action)} · ${fmtH(new Date(a.at).toISOString().slice(0, 10))} · ${new Date(a.at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'})}</div></div></div>`).join('') + '</div>' : '<div class="empty">لا يوجد سجل بعد</div>');
+  if (k === 'settings') return sheet('إعدادات الصندوق', `<div class="f"><label>المستهدف الافتراضي لكل فرد (ر.س)</label><input class="inp" id="t" type="number" value="${DB.settings.target}"></div><div class="f"><label>تاريخ التأسيس</label>${hInput('f', DB.settings.founded)}</div><button class="btn gold block" id="ok">حفظ</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => { db.settings.target = +$('#t', b).value || 10000; db.settings.founded = hVal(b, 'f'); return 'تعديل الإعدادات'; }, 'إعدادات')) close(); };
+  });
+  if (k === 'handover') return sheet('تسليم الأمانة', `<p style="margin-top:0">عند تسليم إدارة الصندوق لأمين جديد، ينتقل كل التاريخ كما هو:</p>
+  <ol style="padding-inline-start:20px;line-height:2.1"><li>نزّل <b>نسخة احتياطية</b> واحتفظ بها.</li><li>من Firebase ← Authentication ← Users: أضف حساب الأمين الجديد (بريده وكلمة مرور يختارها).</li><li>انسخ الـ <b>User UID</b> الخاص به.</li><li>من Firestore ← Rules: استبدل الـ UID القديم بالجديد واضغط Publish.</li><li>في ملف الصفحة: استبدل قيمة <code>ADMIN_UID</code> بالجديد.</li><li>أضفه مالكًا لمشروع Firebase (Project settings ← Users and permissions) ثم احذف نفسك إن أردت.</li></ol>
+  <p class="small muted">البيانات لا تتأثر — فقط مفتاح الإدارة ينتقل.</p>`);
+}
+function formCode() {
+  const code = DB.settings.familyCode;
+  sheet('رمز دخول العائلة', `<div class="card" style="text-align:center"><div class="small muted">الرمز الحالي</div><div class="num" style="font-size:32px;font-weight:900;letter-spacing:6px;direction:ltr">${code}</div></div>
+  <button class="btn block" style="margin-top:10px" id="share">💬 إرسال الرمز للقروب</button>
+  <div class="sec"><div class="f"><label>رمز جديد (8 أرقام)</label><input class="inp code-inp" id="n" inputmode="numeric" maxlength="8" placeholder="••••••••"></div>
+  <div class="small muted" style="margin-bottom:10px">الرمز القديم يتوقف فورًا، وكل الأعضاء يُطلب منهم الجديد مرة واحدة.</div><button class="btn bad block" id="ok">تغيير الرمز</button></div>`, (b, close) => {
+    $('#share', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم 🌿\nرمز الدخول لصندوق آل مبشر بن عبدالله: ${code}\nافتح الصفحة واضغط "دخول أفراد العائلة" واكتب الرمز مرة واحدة فقط.`), '_blank');
+    $('#ok', b).onclick = async () => {
+      const n = $('#n', b).value.trim();
+      if (!/^\d{8}$/.test(n)) return toast('الرمز لازم يكون 8 أرقام', true);
+      if (n === code) return toast('هذا هو الرمز الحالي', true);
+      if (await mutate(db => { db.settings.familyCode = n; return 'تغيير رمز العائلة'; }, 'رمز العائلة', {deleteCode: code})) close();
+    };
+  });
+}
+function formRestore(first) {
+  sheet(first ? 'استيراد بيانات الصندوق' : 'استعادة من نسخة', `<p style="margin-top:0">${first ? 'اختر ملف <b>بيانات-الصندوق.json</b> اللي أرسلته لك.' : '⚠️ سيتم استبدال كل البيانات الحالية بالنسخة المختارة (يُسجَّل في السجل).'}</p>
+  <input type="file" id="f" accept=".json,application/json" class="inp"><div class="small muted" id="info" style="margin-top:8px"></div>
+  <button class="btn gold block" id="ok" disabled style="margin-top:12px">استيراد</button>`, (b, close) => {
+    let data = null;
+    $('#f', b).onchange = async ev => {
+      try { const t = await ev.target.files[0].text(); const j = JSON.parse(t); data = j.db || j; if (!data.members || !data.entries) throw 0; const c = compute(data);
+        $('#info', b).innerHTML = `✓ ملف صحيح: ${arD(data.members.length)} فرد، ${arD(data.entries.length)} حركة، الإجمالي ${fmt(c.total)}${SAR}`; $('#ok', b).disabled = false;
+      } catch (e) { data = null; $('#info', b).textContent = '✕ الملف غير صالح'; $('#ok', b).disabled = true; }
+    };
+    $('#ok', b).onclick = async () => {
+      if (!data) return;
+      const oldCode = DB && DB.settings && DB.settings.familyCode;
+      const prev = DB; DB = data; DB.settings = DB.settings || {target: 10000};
+      if (!DB.settings.familyCode) { if (oldCode) DB.settings.familyCode = oldCode; else { DB = prev; return toast('الملف لا يحتوي رمز العائلة', true); } }
+      try { await persist(first ? 'تهيئة الصندوق' : 'استعادة نسخة', `${data.members.length} فرد، ${data.entries.length} حركة`, oldCode && oldCode !== DB.settings.familyCode ? {deleteCode: oldCode} : null); toast('تم الاستيراد ✓'); close(); MODE = 'admin'; render(); }
+      catch (e) { DB = prev; toast('تعذّر الحفظ: ' + e.message, true); }
+    };
+  });
+}
+function exportExcel() {
+  const c = compute(DB);
+  const mem = DB.members.map(m => ({'الاسم': m.name, 'المساهمات': r2(c.M[m.id].contrib), 'الرصيد': c.M[m.id].balance, 'مستثمر': c.M[m.id].inv, 'نقد': c.M[m.id].cash, 'أرباح محققة': r2(c.M[m.id].profit), 'أرباح متوقعة': r2(c.M[m.id].expected), 'الحالة': m.active === false ? 'موقوف' : 'نشط'}));
+  const ent = DB.entries.slice().sort(byDate).map(e => ({'التاريخ الهجري': fmtH(e.date), 'التاريخ الميلادي': e.date, 'النوع': TYPE_LABEL[e.type], 'البيان': e.desc, 'الفرد': e.memberId ? memName(DB, e.memberId) : '', 'المبلغ': e.amount, 'ملاحظة': e.note || '', 'مُصحَّح': e.reversedBy ? 'نعم' : ''}));
+  const inv = DB.investments.map(i => ({'الاستثمار': i.title, 'رأس المال': i.principal, 'العائد %': i.rate, 'المدة': i.months, 'البداية': fmtH(i.start), 'الحالة': invState(i).label, 'الربح': r2(i.status === 'completed' ? i.finalProfit : expProfit(i)), 'المشاركون': Object.entries(i.shares).map(([k, v]) => memName(DB, k) + ': ' + v).join(' | ')}));
+  const go = () => {
+    const wb = XLSX.utils.book_new();
+    [['الأفراد', mem], ['الحركات', ent], ['الاستثمارات', inv]].forEach(([n, rows]) => { const ws = XLSX.utils.json_to_sheet(rows); ws['!views'] = [{RTL: true}]; XLSX.utils.book_append_sheet(wb, ws, n); });
+    wb.Workbook = {Views: [{RTL: true}]};
+    XLSX.writeFile(wb, `صندوق-آل-مبشر-${todayISO()}.xlsx`); toast('تم التصدير ✓');
+  };
+  if (window.XLSX) return go();
+  toast('جاري تجهيز ملف Excel…');
+  const s = document.createElement('script'); s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+  s.onload = go;
+  s.onerror = () => { const csv = '﻿' + [Object.keys(ent[0] || {}).join(','), ...ent.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n'); download(`حركات-الصندوق-${todayISO()}.csv`, csv, 'text/csv'); toast('تم تنزيل CSV بدلًا من Excel'); };
+  document.head.appendChild(s);
+}
+
+/* ---- logins ---- */
+function formMemberLogin() {
+  sheet('دخول أفراد العائلة', `<p style="margin-top:0;text-align:center">اكتب رمز الدخول (8 أرقام).<br><span class="small muted">تكتبه مرة واحدة فقط، ويتذكره جوالك.</span></p>
+  <input class="inp code-inp" id="c" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"><div id="err" class="small" style="color:var(--bad);text-align:center;min-height:22px;margin-top:6px"></div>
+  <button class="btn gold block" id="ok">دخول</button>`, (b, close) => {
+    const go = async () => {
+      const code = $('#c', b).value.trim();
+      if (!/^\d{8}$/.test(code)) { $('#err', b).textContent = 'الرمز 8 أرقام'; return; }
+      $('#ok', b).disabled = true; $('#ok', b).textContent = 'جاري التحقق…';
+      if (DEMO) { close(); MODE = 'member'; render(); return; }
+      const ok = await listenMember(code, true);
+      if (ok) { close(); toast('أهلًا بك 🌿'); } else { $('#ok', b).disabled = false; $('#ok', b).textContent = 'دخول'; $('#err', b).textContent = 'الرمز غير صحيح'; listenGuest(); }
+    };
+    $('#ok', b).onclick = go; $('#c', b).onkeydown = e => { if (e.key === 'Enter') go(); };
+    setTimeout(() => $('#c', b).focus(), 300);
+  });
+}
+function formAdminLogin() {
+  sheet('دخول المدير', `<div class="f"><label>البريد الإلكتروني</label><input class="inp" id="e" type="email" dir="ltr" autocomplete="username"></div>
+  <div class="f"><label>كلمة المرور</label><input class="inp" id="p" type="password" dir="ltr" autocomplete="current-password"></div>
+  <div id="err" class="small" style="color:var(--bad);min-height:20px"></div><button class="btn gold block" id="ok">دخول</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => {
+      if (!auth) return toast('تسجيل الدخول غير مدعوم في طريقة الفتح هذه. افتح الملف في Chrome أو من الرابط الثابت.', true);
+      $('#ok', b).disabled = true;
+      try { await auth.signInWithEmailAndPassword($('#e', b).value.trim(), $('#p', b).value); close(); }
+      catch (e) { $('#err', b).textContent = 'بيانات الدخول غير صحيحة'; $('#ok', b).disabled = false; }
+    };
+  });
+}
+
+/* ---- setup (first run) ---- */
+function setupView() {
+  return heroHTML(null, 'المدير') + `<div class="wrap"><div class="sec card"><h2 style="font-family:Cairo;margin-top:0">أهلًا بك يا أمين الصندوق 🌿</h2>
+  <p>قاعدة البيانات جاهزة لكنها فاضية. الخطوة الأولى: استورد بيانات الصندوق من الملف اللي جهّزته لك (فيه الأفراد والحركات والاستثمارات بعد التصحيح).</p>
+  <button class="btn gold block" id="imp">📥 استيراد ملف البيانات</button>
+  <button class="admin-link" id="out">تسجيل الخروج</button></div></div>`;
+}
+function wireSetup() { $('#imp').onclick = () => formRestore(true); $('#out').onclick = () => { auth.signOut(); startViewer(); }; }
+
+/* ---- demo role switch (testing only) ---- */
+function demoBar() {
+  if (!DEMO || $('.demo-bar')) return;
+  const d = document.createElement('div'); d.className = 'demo-bar';
+  d.innerHTML = ['admin:مدير', 'member:عضو', 'guest:ضيف'].map(x => { const [k, l] = x.split(':'); return `<button data-r="${k}">${l}</button>`; }).join('');
+  document.body.appendChild(d);
+  $$('button', d).forEach(b => b.onclick = () => { if (b.dataset.r === 'guest') listenGuest(); else { MODE = b.dataset.r; render(); } });
+}
+
+/* ================= BOOT ================= */
+let BOOT_ERR = '';
+window.addEventListener('error', e => { BOOT_ERR = BOOT_ERR || (e.message || ''); });
+function startViewer() {
+  let code = null; try { code = localStorage.getItem(LS_CODE); } catch (e) {}
+  if (code) listenMember(code); else listenGuest();
+}
+function boot() {
+  if (!HP) { $('#app').innerHTML = '<div class="wrap"><div class="banner bad">المتصفح قديم ولا يدعم التاريخ الهجري. حدّث المتصفح.</div></div>'; return; }
+  if (DEMO) { DB = clone(window.DEMO_DB); SYNC = 'on'; MODE = 'admin'; render(); return; }
+  if (!initFB()) { MODE = 'guest'; SYNC = 'off'; render(); showBootError(fbReady() ? BOOT_ERR : 'تعذّر تحميل مكتبة Firebase (تحقق من الإنترنت، وافتح الملف في Chrome)'); return; }
+  startViewer();
+  if (auth) {
+    try {
+      auth.onAuthStateChanged(u => {
+        if (u && u.uid === ADMIN_UID) { listenAdmin(); return; }
+        if (u) { auth.signOut(); toast('هذا الحساب ليس حساب المدير', true); }
+        if (MODE === 'admin' || MODE === 'setup') { DB = null; TAB = 'home'; startViewer(); }
+      }, err => { BOOT_ERR = 'Auth: ' + err.message; });
+    } catch (e) { auth = null; BOOT_ERR = 'Auth: ' + e.message; }
+  }
+  setTimeout(() => { if (MODE === 'loading' || (MODE === 'guest' && !PUB && SYNC !== 'on')) showBootError(BOOT_ERR || 'الاتصال بطيء أو محجوب'); }, 9000);
+}
+function showBootError(msg) {
+  const app = $('#app'); if (!app) return;
+  const box = document.createElement('div'); box.className = 'wrap';
+  box.innerHTML = `<div class="banner bad">تعذّر الاتصال بالصندوق.<br><span class="small">${esc(msg)}</span><br><span class="small">جرّب فتح الملف في متصفح Chrome مباشرة (مو من داخل واتساب أو عارض الملفات).</span></div><button class="btn block" style="margin-top:10px" onclick="location.reload()">إعادة المحاولة</button>`;
+  app.appendChild(box);
+}
+boot();
+</script>
+</body>
+</html>
