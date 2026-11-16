@@ -220,6 +220,41 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .nbadge{position:absolute;top:6px;right:calc(50% - 22px);background:var(--bad);color:#fff;border-radius:10px;font-size:9.5px;padding:0 5px;font-style:normal;min-width:16px;line-height:16px}
 textarea.inp{resize:vertical;line-height:1.8}
 .cardbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:right;color:inherit;font:inherit}
+.inv-rem{display:flex;justify-content:space-between;font-size:11px;color:#CFC8A9;margin-top:6px;position:relative;z-index:1}
+.chips2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;position:relative;z-index:2}
+.chip .s{font-size:10px;color:#BDB79A;margin-top:2px;line-height:1.5}
+.news{background:linear-gradient(135deg,#FFF6DA,#F3E6C0);border:1px solid var(--gold);border-radius:14px;padding:12px 14px;margin-top:14px;display:flex;gap:10px;align-items:flex-start}
+.news .x{border:none;background:none;color:var(--ink2);font-size:16px;padding:0 4px}
+.news ul{margin:4px 0 0;padding-inline-start:18px;font-size:12.5px;line-height:1.9}
+.gwrap{position:relative}
+.ghead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.ghead .v{font-family:'Cairo';font-weight:900;font-size:22px;color:var(--green)}
+.ghead .g{font-family:'Cairo';font-weight:800;font-size:12px;padding:1px 9px;border-radius:12px;background:var(--goodBg);color:var(--good)}
+.glegend{display:flex;gap:14px;font-size:11px;color:var(--ink2);margin-top:6px}
+.glegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:4px;vertical-align:middle}
+.gtip{position:absolute;top:34px;pointer-events:none;background:var(--green);color:#FFF6DA;border-radius:10px;padding:6px 10px;font-size:11.5px;line-height:1.6;white-space:nowrap;transform:translateX(50%);opacity:0;transition:opacity .15s;z-index:3}
+.gtip b{font-family:'Cairo';color:var(--goldL)}
+.grange{display:flex;gap:6px;margin-inline-start:auto}
+.grange button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--ink2)}
+.grange button.on{background:var(--green);color:var(--goldL);border-color:var(--green)}
+.poll .opt{display:block;width:100%;text-align:right;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;margin-top:8px;position:relative;overflow:hidden;color:var(--ink);font-size:13.5px;font-weight:600}
+.poll .opt .fill{position:absolute;inset:0;width:0;background:var(--gold3);transition:width .8s;z-index:0}
+.poll .opt.win .fill{background:#E8D58F}
+.poll .opt.mine{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+.poll .opt span{position:relative;z-index:1;display:flex;justify-content:space-between;gap:8px}
+.poll .names{position:relative;z-index:1;font-size:11px;color:var(--ink2);font-weight:400;margin-top:2px}
+.rcpt{border:2px solid var(--gold);border-radius:16px;padding:22px 20px;background:radial-gradient(circle at 50% 0,#FFF8E2,#fff 65%);position:relative}
+.rcpt h1{font-family:'Aref Ruqaa';text-align:center;margin:0;font-size:30px;color:var(--green)}
+.rcpt .no{text-align:center;font-family:'Cairo';font-weight:800;color:var(--gold2);letter-spacing:1px}
+.rcpt .row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding:9px 0;font-size:14px}
+.rcpt .row b{font-family:'Cairo'}
+.rcpt .amt{text-align:center;font-family:'Cairo';font-weight:900;font-size:32px;color:var(--green);margin:14px 0 2px}
+.rcpt .words{text-align:center;font-size:13px;color:var(--ink2)}
+.rcpt .seal2{position:absolute;left:18px;bottom:18px;width:78px;height:78px;border-radius:50%;border:2.5px solid var(--good);color:var(--good);display:flex;align-items:center;justify-content:center;transform:rotate(-14deg);font-family:'Cairo';font-weight:900;font-size:11px;text-align:center;line-height:1.3;opacity:.85}
+.calc-res{background:var(--green);color:#FFF6DA;border-radius:14px;padding:14px;margin-top:6px}
+.calc-res .big{font-family:'Cairo';font-weight:900;font-size:28px;color:var(--goldL)}
+.cmp{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-top:6px;background:#fff}
+.cmp.best{border-color:var(--gold);background:#FFF8E2}
 .demo-bar{position:fixed;top:8px;left:8px;z-index:70;display:flex;gap:4px;background:#000a;padding:4px;border-radius:20px}
 .demo-bar button{border:none;border-radius:16px;padding:4px 10px;font-size:11px;background:#fff3;color:#fff}
 .demo-bar button.on{background:var(--goldL);color:#000}
@@ -350,6 +385,9 @@ let ledgerFilter = 'all', ledgerPeriod = 'all';
 let SANDBOX = false;
 let SUGG = [], PINS = {}, sugUnsub = null, sugCode = null;
 const LS_BIND = 'mubasher_bind_v1';
+const LS_SEEN = 'mubasher_seen_v1';
+let PREV_SEEN = undefined, NEWS_HIDE = false, CHART_RANGE = 'all', CMP = [];
+let VOTES = {}, BALLOTS = {}, POLL_UNSUBS = {}, SUGG_A = [], SUGG_B = [], sugUnsub2 = null;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
 const isoOf = ts => { const d = new Date(ts); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
@@ -384,8 +422,10 @@ function compute(db, upTo) {
     for (const [k, v] of Object.entries(e.profit || {})) { profit += v; if (M[k]) M[k].profit += v; }
     if (e.type === 'expense') spent += e.amount;
     if (e.type === 'withdrawal') withdrawn += e.amount;
+    const gv = {d: e.date, v: r2(cash + inv), p: r2(profit)};
+    if (e.type === 'maturity') gv.e = e.desc;
     const last = growth[growth.length - 1];
-    if (last && last[0] === e.date) last[1] = r2(cash + inv); else growth.push([e.date, r2(cash + inv)]);
+    if (last && last.d === e.date) { last.v = gv.v; last.p = gv.p; if (gv.e) last.e = gv.e; } else growth.push(gv);
     touched.forEach(k => {
       const s = M[k].series, v = r2(M[k].cash + M[k].inv), l = s[s.length - 1];
       if (l && l[0] === e.date) l[1] = v; else s.push([e.date, v]);
@@ -504,13 +544,22 @@ const A = {
   }
 };
 
+function avgRate(db) {
+  const d = db.investments.filter(i => i.status === 'completed');
+  const base = d.reduce((s, i) => s + i.principal * i.months / 12, 0);
+  return base > 0 ? r2(d.reduce((s, i) => s + (i.finalProfit || 0), 0) / base * 100) : 0;
+}
+function ensureReceipts(db) {
+  db.receiptSeq = db.receiptSeq || 0;
+  db.entries.filter(e => e.type === 'contribution' && !e.receiptNo).sort(byDate).forEach(e => { db.receiptSeq++; e.receiptNo = g2h(e.date).y + '/' + String(db.receiptSeq).padStart(3, '0'); });
+}
 function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); delete v.settings.familyCode; return v; }
 function buildPublic(db) {
   const c = compute(db);
   return {
     fundName: db.fundName, founded: db.settings.founded || '', total: c.total, cash: c.cash, invested: c.inv, expected: r2(c.expected), realized: r2(c.profit),
     investments: db.investments.filter(i => i.status !== 'cancelled').map(i => ({title: i.title, principal: i.principal, rate: i.rate, months: i.months, start: i.start, status: i.status, profit: r2(i.status === 'completed' ? i.finalProfit : expProfit(i))})),
-    growth: c.growth.map(([d, v]) => ({d, v})), updatedAt: db.updatedAt || Date.now()
+    growth: c.growth, doneCount: db.investments.filter(i => i.status === 'completed').length, avgRate: avgRate(db), updatedAt: db.updatedAt || Date.now()
   };
 }
 
@@ -522,13 +571,47 @@ function initFB() {
   try { auth = firebase.auth(); } catch (e) { auth = null; BOOT_ERR = 'Auth: ' + e.message; }
   return true;
 }
-function stopListeners() { unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs = []; if (sugUnsub) { try { sugUnsub(); } catch (e) {} sugUnsub = null; } sugCode = null; }
-function listenSugg(code) {
-  if (DEMO || !fs || !code || sugCode === code) return;
-  if (sugUnsub) { try { sugUnsub(); } catch (e) {} }
-  sugCode = code;
-  sugUnsub = fs.collection('members/' + code + '/suggestions').onSnapshot(s => { SUGG = s.docs.map(d => Object.assign({id: d.id}, d.data())); if (MODE === 'member' || MODE === 'admin') render(); }, () => {});
+function stopListeners() {
+  unsubs.forEach(u => { try { u(); } catch (e) {} }); unsubs = [];
+  [sugUnsub, sugUnsub2].forEach(u => { if (u) try { u(); } catch (e) {} }); sugUnsub = sugUnsub2 = null; sugCode = null;
+  Object.values(POLL_UNSUBS).forEach(arr => arr.forEach(u => { try { u(); } catch (e) {} })); POLL_UNSUBS = {};
 }
+let renderTimer = null;
+function softRender() { clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (MODE === 'member' || MODE === 'admin') render(); }, 60); }
+function mergeSugg() { const m = {}; SUGG_A.concat(SUGG_B).forEach(x => m[x.id] = x); SUGG = Object.values(m); softRender(); }
+function listenSugg(code, force) {
+  if (DEMO || !fs || !code || (sugCode === code && !force)) return;
+  [sugUnsub, sugUnsub2].forEach(u => { if (u) try { u(); } catch (e) {} }); sugUnsub = sugUnsub2 = null;
+  sugCode = code; SUGG_A = []; SUGG_B = [];
+  const col = fs.collection('members/' + code + '/suggestions');
+  if (MODE === 'admin') {
+    sugUnsub = col.onSnapshot(s => {
+      SUGG_A = s.docs.map(d => Object.assign({id: d.id}, d.data()));
+      const legacy = SUGG_A.filter(x => x.approved === undefined);
+      if (legacy.length) { const bt = fs.batch(); legacy.forEach(x => bt.update(col.doc(x.id), {approved: !x.hidden})); bt.commit().catch(() => {}); }
+      mergeSugg();
+    }, () => {});
+    return;
+  }
+  sugUnsub = col.where('approved', '==', true).onSnapshot(s => { SUGG_A = s.docs.map(d => Object.assign({id: d.id}, d.data())); mergeSugg(); }, () => {});
+  const u = auth && auth.currentUser;
+  if (u) sugUnsub2 = col.where('uid', '==', u.uid).onSnapshot(s => { SUGG_B = s.docs.map(d => Object.assign({id: d.id}, d.data())); mergeSugg(); }, () => {});
+}
+function syncPolls() {
+  if (DEMO || !fs || !DB) return;
+  const ids = (DB.polls || []).map(x => x.id);
+  Object.keys(POLL_UNSUBS).forEach(id => { if (!ids.includes(id)) { POLL_UNSUBS[id].forEach(u => u()); delete POLL_UNSUBS[id]; } });
+  (DB.polls || []).forEach(pl => {
+    const wantBallots = MODE === 'admin' || pl.mode === 'public';
+    const key = pl.id, cur = POLL_UNSUBS[key];
+    if (cur && cur.ballots === wantBallots) return;
+    if (cur) cur.forEach(u => u());
+    const arr = [fs.doc('votes/' + key).onSnapshot(d => { VOTES[key] = d.exists ? d.data() : null; softRender(); }, () => {})];
+    if (wantBallots) arr.push(fs.collection('votes/' + key + '/ballots').onSnapshot(q => { const m = {}; q.docs.forEach(d => m[d.id] = d.data().opt); BALLOTS[key] = m; softRender(); }, () => {}));
+    arr.ballots = wantBallots; POLL_UNSUBS[key] = arr;
+  });
+}
+function markSeen() { if (PREV_SEEN === undefined) { PREV_SEEN = lsGet(LS_SEEN) ? +lsGet(LS_SEEN) : null; lsSet(LS_SEEN, String(Date.now())); } }
 function setSync(s) { SYNC = s; const el = $('#sync'); if (el) { el.className = 'sync ' + s; $('span', el).textContent = s === 'on' ? 'متصل · تحديث مباشر' : s === 'off' ? 'غير متصل' : 'جاري الاتصال'; } }
 
 function listenGuest() {
@@ -543,7 +626,7 @@ function listenMember(code, fromInput) {
     const u = fs.doc('members/' + code).onSnapshot(s => {
       if (!s.exists) { try { localStorage.removeItem(LS_CODE); } catch (e) {} if (fromInput) res(false); else { toast('تغيّر رمز الدخول، اطلب الرمز الجديد', true); listenGuest(); } return; }
       try { localStorage.setItem(LS_CODE, code); } catch (e) {}
-      DB = s.data().db; MODE = 'member'; setSync('on'); listenSugg(code); render(); res(true);
+      DB = s.data().db; MODE = 'member'; setSync('on'); markSeen(); listenSugg(code); syncPolls(); render(); res(true);
     }, err => { setSync('off'); res(false); });
     unsubs.push(u);
   });
@@ -553,14 +636,14 @@ function listenAdmin() {
   unsubs.push(fs.doc('fund/main').onSnapshot(s => {
     setSync('on');
     if (!s.exists) { DB = null; MODE = 'setup'; render(); return; }
-    DB = s.data(); MODE = 'admin'; listenSugg(DB.settings.familyCode); render();
+    DB = s.data(); MODE = 'admin'; markSeen(); listenSugg(DB.settings.familyCode); syncPolls(); render();
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
   unsubs.push(fs.collection('pins').onSnapshot(s => { PINS = {}; s.docs.forEach(d => PINS[d.id] = d.data().pin); }, () => {}));
   unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
 }
 
 async function persist(action, detail, extra) {
-  assignRanks(DB);
+  assignRanks(DB); ensureReceipts(DB);
   DB.updatedAt = Date.now();
   if (DEMO || SANDBOX) { AUDIT.push({at: Date.now(), action, detail}); return; }
   const data = clone(DB);
@@ -569,6 +652,7 @@ async function persist(action, detail, extra) {
   b.set(fs.doc('public/summary'), buildPublic(data));
   b.set(fs.doc('members/' + data.settings.familyCode), {db: familyView(data), updatedAt: data.updatedAt});
   if (extra && extra.deleteCode) b.delete(fs.doc('members/' + extra.deleteCode));
+  if (extra && extra.writes) extra.writes.forEach(([path, data, merge]) => data === null ? b.delete(fs.doc(path)) : b.set(fs.doc(path), data, merge ? {merge: true} : {}));
   b.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action, detail: detail || ''})}, {merge: true});
   await b.commit();
 }
@@ -641,7 +725,7 @@ function render() {
   const y = window.scrollY;
   if (MODE === 'loading') return;
   if (MODE === 'setup') { app.innerHTML = setupView(); wireSetup(); return; }
-  if (MODE === 'guest') { app.innerHTML = heroHTML(PUB, 'ضيف') + `<div class="wrap">${guestBody()}</div>`; wireGuest(); demoBar(); return; }
+  if (MODE === 'guest') { app.innerHTML = heroHTML(PUB, 'ضيف') + `<div class="wrap">${guestBody()}</div>`; wireGuest(); wireCharts(); demoBar(); return; }
   const c = compute(DB);
   const S = buildPublic(DB);
   let body = '';
@@ -654,7 +738,8 @@ function render() {
   app.innerHTML = (TAB === 'home' ? heroHTML(S, MODE === 'admin' ? 'المدير' : 'عضو') : miniHero()) + `<div class="wrap">${body}</div>` + navHTML() + (MODE === 'admin' ? '<button class="fab" id="fab" aria-label="إضافة">+</button>' : '');
   if (SANDBOX) app.insertAdjacentHTML('afterbegin', '<div class="sbx">🧪 وضع التجربة: لا شيء يُحفظ ولا يراه أحد <button onclick="location.reload()">خروج</button></div>');
   wireMain(c);
-  requestAnimationFrame(() => $$('.bar>i[data-w]').forEach(b => b.style.width = b.dataset.w + '%'));
+  requestAnimationFrame(() => { $$('.bar>i[data-w]').forEach(b => b.style.width = b.dataset.w + '%'); $$('.opt .fill[data-w]').forEach(b => b.style.width = b.dataset.w + '%'); });
+  wireCharts();
   window.scrollTo(0, y);
   demoBar();
 }
@@ -670,7 +755,9 @@ function heroHTML(S, role) {
     <div class="seal-cap">= ${fmt(S.cash)} نقد + ${fmt(S.invested)} مستثمر + ${fmt(S.expected)} أرباح متوقعة</div>
     <div class="chips"><div class="chip hl"><div class="l">💵 النقد المتاح</div><div class="v num">${fmt(S.cash)}</div></div>
     <div class="chip"><div class="l">📈 المستثمر</div><div class="v num">${fmt(S.invested)}</div></div>
-    <div class="chip"><div class="l">✨ أرباح متوقعة</div><div class="v num">${fmt(S.expected)}</div></div></div>` : `<div class="banner" style="position:relative;z-index:2">لم تُنشر بيانات الصندوق بعد</div>`}
+    <div class="chip"><div class="l">✨ أرباح متوقعة</div><div class="v num">${fmt(S.expected)}</div></div></div>
+    <div class="chips2"><div class="chip hl"><div class="l">🏆 إجمالي الأرباح منذ التأسيس</div><div class="v num">${fmt(S.realized)}</div><div class="s">${S.doneCount ? `من ${arD(S.doneCount)} استثمار مكتمل · متوسط العائد ${arD(S.avgRate)}٪` : 'تظهر بعد إقفال أول استثمار'}</div></div>
+    <div class="chip"><div class="l">🏦 الأصول الفعلية</div><div class="v num">${fmt(S.cash + S.invested)}</div><div class="s">نقد + مستثمر (بدون المتوقع)</div></div></div>` : `<div class="banner" style="position:relative;z-index:2">لم تُنشر بيانات الصندوق بعد</div>`}
   </div></header>`;
 }
 function miniHero() {
@@ -679,7 +766,7 @@ function miniHero() {
 }
 function navHTML() {
   const items = [['home', '🏛️', 'الرئيسية'], ['members', '👥', 'الأفراد'], ['ledger', '📜', 'الحركات'], ['invest', '📈', 'الاستثمار'], ['council', '🗣️', 'المجلس'], ['more', MODE === 'admin' ? '⚙️' : '☰', MODE === 'admin' ? 'الإدارة' : 'المزيد']];
-  const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'new').length : 0;
+  const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'pending').length : 0;
   return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}${k === 'council' && nNew ? `<i class="nbadge">${arD(nNew)}</i>` : ''}</button>`).join('')}</div></nav>`;
 }
 
@@ -688,9 +775,8 @@ function guestBody() {
   if (SYNC === 'off' && !PUB) return `<div class="banner bad">تعذّر الاتصال. تأكد من الإنترنت ثم أعد فتح الصفحة.</div>`;
   let h = '';
   if (PUB) {
-    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${lineChart(PUB.growth)}</div></div>`;
-    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الاستثمارات</h2><span class="cnt">${PUB.investments.length}</span></div>${PUB.investments.length ? PUB.investments.map(pubInvCard).join('') : '<div class="empty">لا توجد استثمارات</div>'}</div>`;
-    h += `<div class="grid2 sec"><div class="kpi"><div class="v num">${fmt(PUB.realized)}</div><div class="l">أرباح محققة</div></div><div class="kpi"><div class="v num">${fmt(PUB.cash + PUB.invested)}</div><div class="l">الأصول الفعلية</div></div></div>`;
+    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>الاستثمارات</h2><span class="cnt">${arD(PUB.investments.length)}</span></div>${PUB.investments.length ? PUB.investments.map(pubInvCard).join('') : '<div class="empty">لا توجد استثمارات</div>'}</div>`;
+    h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${growthChart(PUB.growth, 'gg')}</div></div>`;
   }
   h += `<div class="guest-actions"><button class="btn gold block" id="memberLogin">🔑 دخول أفراد العائلة</button></div>
   <div class="foot-note">هذا عرض عام للصندوق بدون بيانات الأفراد.<br>${PUB ? 'آخر تحديث: ' + fmtH(new Date(PUB.updatedAt).toISOString().slice(0, 10)) : ''}</div>
@@ -704,7 +790,16 @@ function pubInvCard(i) {
   <div class="inv-s">${i.start ? fmtH(i.start) : ''} ← ${md ? fmtH(md) : ''}</div>
   <div class="inv-g"><div><div class="l">رأس المال</div><div class="v">${fmt(i.principal)}${SAR}</div></div><div><div class="l">العائد السنوي</div><div class="v">${i.rate}٪</div></div>
   <div><div class="l">المدة</div><div class="v">${arD(i.months)} أشهر</div></div><div><div class="l">${i.status === 'completed' ? 'الربح المحقق' : 'الربح المتوقع'}</div><div class="v">${i.status === 'completed' ? '' : '≈ '}${fmt(i.profit)}${SAR}</div></div></div>
-  ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>` : ''}</div>`;
+  ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>${remLine(i, prog)}` : ''}</div>`;
+}
+function remLine(i, prog) {
+  const md = maturity(i); if (!md) return '';
+  const t = todayISO();
+  if (t >= md) return `<div class="inv-rem"><span>اكتملت المدة ✓</span><span>استحق ${fmtH(md)}</span></div>`;
+  let m = 0; while (addMonths(t, m + 1) <= md) m++;
+  const d = Math.round((new Date(md + 'T12:00:00Z') - new Date(addMonths(t, m) + 'T12:00:00Z')) / 864e5);
+  const parts = []; if (m) parts.push(m === 1 ? 'شهر' : m === 2 ? 'شهرين' : arD(m) + (m <= 10 ? ' أشهر' : ' شهرًا')); if (d) parts.push(d === 1 ? 'يوم' : d === 2 ? 'يومين' : arD(d) + (d <= 10 ? ' أيام' : ' يومًا'));
+  return `<div class="inv-rem"><span>مضى ${arD(Math.round(prog))}٪</span><span>باقي ${parts.join(' و')}</span></div>`;
 }
 function invState(i) {
   if (i.status === 'completed') return {cls: 'done', label: '✓ مكتمل'};
@@ -720,20 +815,21 @@ function homeBody(S, c) {
   const recent = DB.entries.slice().sort(byDate).reverse().slice(0, 5);
   const openP = (DB.periods || []).find(p => p.status === 'open' && todayISO() >= p.start && todayISO() <= p.end);
   const due = DB.investments.filter(i => i.status === 'active' && maturity(i) && todayISO() >= maturity(i));
-  let h = '';
+  let h = newsBanner();
   if (MODE === 'admin' && due.length) h += `<div class="banner">⏳ ${due.map(i => esc(i.title)).join('، ')} — حان الاستحقاق. افتح الاستثمارات وأقفله بالربح الفعلي.</div>`;
   h += `<div class="grid2 sec" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi"><div class="v num">${arD(ms.length)}</div><div class="l">عدد الأفراد</div></div>
     <div class="kpi"><div class="v num">${arD(done)}</div><div class="l">أكملوا المستهدف</div></div>
-    <div class="kpi"><div class="v num">${fmt(c.profit)}</div><div class="l">أرباح محققة</div></div></div>`;
+    <div class="kpi"><div class="v num">${arD(DB.investments.filter(i => i.status === 'active').length)}</div><div class="l">استثمارات نشطة</div></div></div>`;
   if (openP) h += `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🗓️</span><div style="flex:1"><b>${esc(openP.name)}</b><div class="small muted">${fmtH(openP.start)} ← ${fmtH(openP.end)}</div></div><span class="pill blue">مفتوحة</span></div>`;
   const nm = nextMeeting(DB);
   if (nm) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗣️</span><div style="flex:1"><b>الاجتماع القادم: ${esc(nm.title)}</b><div class="small muted">${fmtH(nm.date)}${nm.time ? ' · ' + fmtTime(nm.time) : ''}${nm.place ? ' · ' + esc(nm.place) : ''}</div></div><span class="muted">‹</span></button>`;
-  const nNew = SUGG.filter(x => x.status === 'new' && !x.hidden).length;
-  if (nNew) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">💬</span><div style="flex:1"><b>${arD(nNew)} ${MODE === 'admin' ? 'مقترح جديد بانتظار ردك' : 'مقترح جديد من العائلة'}</b></div><span class="muted">‹</span></button>`;
-  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${lineChart(S.growth)}</div></div>`;
+  openPolls().forEach(pl => { h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗳️</span><div style="flex:1"><b>تصويت مفتوح: ${esc(pl.q)}</b><div class="small muted">يُغلق ${fmtH(pl.closeDate)}</div></div><span class="muted">‹</span></button>`; });
+  const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'pending').length : 0;
+  if (nNew) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">💬</span><div style="flex:1"><b>${arD(nNew)} مقترح بانتظار موافقتك</b></div><span class="muted">‹</span></button>`;
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>آخر الحركات</h2><button class="lnk" data-go="ledger" style="margin-inline-start:auto">عرض الكل ←</button></div><div class="card" style="padding:0">${recent.map(ledgerRow).join('') || '<div class="empty">لا حركات</div>'}</div></div>`;
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المتصدرون</h2><button class="lnk" data-go="members" style="margin-inline-start:auto">كل الأفراد ←</button></div>${ms.slice(0, 3).map(m => memCard(m, c)).join('')}</div>`;
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>نمو الصندوق</h2></div><div class="card">${growthChart(S.growth, 'gh')}</div></div>`;
   if (MODE === 'member') h += `<div class="foot-note">كل الأرقام تتحدث مباشرة عند أي تعديل من أمين الصندوق.</div>`;
   return h;
 }
@@ -787,6 +883,8 @@ function openMember(id) {
     $('#cert', b).onclick = () => certificate(m, x);
     $('#stmt', b).onclick = () => statement(m, x, myEntries);
     $$('[data-undo]', b).forEach(btn => btn.onclick = () => { close(); undoEntry(btn.dataset.undo); });
+    $$('[data-rcpt]', b).forEach(btn => btn.onclick = () => receiptView(btn.dataset.rcpt));
+    const ch = $('.gch', b); if (ch) wireCharts(b);
     if (MODE !== 'admin') return;
     $('#mDep', b).onclick = () => { close(); formContribution(id); };
     $('#mWd', b).onclick = () => { close(); formWithdrawal(id); };
@@ -807,7 +905,7 @@ function ledgerRow(e, forMember) {
     if (e.type === 'maturity') sign = '+ ربح ';
   }
   const canUndo = MODE === 'admin' && isLive(e);
-  return `<div class="lg ${voided ? 'void' : ''}"><span class="dot ${cls}"></span><div class="lg-b"><div class="lg-d">${esc(e.desc)}${voided ? '<span class="tag">مُصحَّح</span>' : ''}</div>${e.note ? `<div class="lg-n">${esc(e.note)}</div>` : ''}<div class="lg-t">${dateBoth(e.date)}${canUndo ? ` · <button class="lnk" data-undo="${e.id}">تصحيح</button>` : ''}</div></div><div class="lg-a ${cls}">${sign}${fmt(amt)}</div></div>`;
+  return `<div class="lg ${voided ? 'void' : ''}"><span class="dot ${cls}"></span><div class="lg-b"><div class="lg-d">${esc(e.desc)}${voided ? '<span class="tag">مُصحَّح</span>' : ''}</div>${e.note ? `<div class="lg-n">${esc(e.note)}</div>` : ''}<div class="lg-t">${dateBoth(e.date)}${e.receiptNo && !voided ? ` · <button class="lnk" data-rcpt="${e.id}">🧾 سند</button>` : ''}${canUndo ? ` · <button class="lnk" data-undo="${e.id}">تصحيح</button>` : ''}</div></div><div class="lg-a ${cls}">${sign}${fmt(amt)}</div></div>`;
 }
 function ledgerBody() {
   let list = DB.entries.slice().sort(byDate).reverse();
@@ -834,7 +932,8 @@ function ledgerBody() {
 /* ---- investments ---- */
 function investBody(c) {
   const list = DB.investments.slice().sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || (b.start || '').localeCompare(a.start || ''));
-  let h = `<div class="sec"><div class="grid2"><div class="kpi"><div class="v num">${fmt(c.inv)}</div><div class="l">مستثمر الآن</div></div><div class="kpi"><div class="v num" style="color:var(--gold2)">≈ ${fmt(c.expected)}</div><div class="l">أرباح متوقعة</div></div></div></div><div class="sec">`;
+  let h = `<div class="sec"><div class="grid2"><div class="kpi"><div class="v num">${fmt(c.inv)}</div><div class="l">مستثمر الآن</div></div><div class="kpi"><div class="v num" style="color:var(--gold2)">≈ ${fmt(c.expected)}</div><div class="l">أرباح متوقعة</div></div></div>
+  <button class="card cardbtn" style="margin-top:10px" id="openCalc"><span style="font-size:22px">💹</span><div style="flex:1"><b>حاسبة الأرباح</b><div class="small muted">احسب ربح أي مبلغ بأي نسبة ومدة، وقارن بين العروض</div></div><span class="muted">‹</span></button></div><div class="sec">`;
   if (!list.length) h += '<div class="empty">لا توجد استثمارات</div>';
   list.forEach(i => {
     const st = invState(i), md = maturity(i), n = Object.keys(i.shares || {}).length;
@@ -847,7 +946,7 @@ function investBody(c) {
     <div class="inv-s">${fmtH(i.start)} ← ${md ? fmtH(md) : ''} · ${arD(n)} مشارك</div>
     <div class="inv-g"><div><div class="l">رأس المال</div><div class="v">${fmt(i.principal)}${SAR}</div></div><div><div class="l">العائد السنوي</div><div class="v">${i.rate}٪</div></div>
     <div><div class="l">المدة</div><div class="v">${arD(i.months)} أشهر</div></div><div><div class="l">${i.status === 'completed' ? 'الربح المحقق' : i.manualProfit != null ? 'الربح (مُدخل)' : 'الربح المتوقع'}</div><div class="v">${i.status === 'completed' ? '' : '≈ '}${fmt(profit)}${SAR}</div></div></div>
-    ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>` : ''}
+    ${i.status === 'active' ? `<div class="prog"><i style="width:${prog}%"></i></div>${remLine(i, prog)}` : ''}
     <details class="inv-parts"><summary class="small" style="cursor:pointer;color:#E9C46A">المشاركون وحصصهم</summary>${parts.map(([k, v]) => `<div class="r"><span>${esc(memName(DB, k))}</span><span>${fmt(v)} · ${i.status === 'completed' ? '+' : '≈'}${fmt(i.status === 'completed' ? ((DB.entries.find(e => e.id === i.maturityEntryId) || {}).profit || {})[k] : profit * v / i.principal)}</span></div>`).join('')}</details>
     ${MODE === 'admin' && i.status === 'active' ? `<div class="inv-btns"><button data-close="${i.id}">✔ إقفال وتوزيع الربح</button><button data-ivedit="${i.id}">✏️ تعديل</button><button data-cancel="${i.id}">✕ إلغاء</button></div>` : ''}
     ${MODE === 'admin' && i.status === 'completed' ? `<div class="inv-btns"><button data-reopen="${i.id}">↺ إعادة فتح</button></div>` : ''}</div>`;
@@ -857,7 +956,7 @@ function investBody(c) {
 }
 
 /* ---- council: meetings & suggestions ---- */
-const SST = {new: ['جديد', 'blue'], review: ['تحت الدراسة', 'mid'], accepted: ['اعتُمد ✓', 'done'], rejected: ['لم يُعتمد', 'early']};
+const SST = {pending: ['⏳ بانتظار الموافقة', 'gray'], new: ['جديد', 'blue'], review: ['تحت الدراسة', 'mid'], accepted: ['اعتُمد ✓', 'done'], rejected: ['لم يُعتمد', 'early']};
 function sugAuthor(s) { if (s.byAdmin) return 'أمين الصندوق'; if (s.anon || !s.memberId) return 'عضو (بدون اسم)'; return memName(DB, s.memberId); }
 function councilBody() {
   const ms = DB.meetings || [];
@@ -867,7 +966,12 @@ function councilBody() {
   h += up.length ? up.map(meetCard).join('') : '<div class="empty">لا يوجد اجتماع مجدول</div>';
   if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:10px" id="newMeet">＋ جدولة اجتماع</button>`;
   h += '</div>';
-  const list = SUGG.filter(s => MODE === 'admin' || !s.hidden).sort((a, b) => (b.at || 0) - (a.at || 0));
+  const pl = (DB.polls || []).slice().sort((a, b) => (pollOpen(a) ? 0 : 1) - (pollOpen(b) ? 0 : 1) || (b.createdAt || 0) - (a.createdAt || 0));
+  h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>التصويتات</h2><span class="cnt">${arD(pl.length)}</span></div>`;
+  h += pl.length ? pl.map(pollCard).join('') : '<div class="empty">لا توجد تصويتات</div>';
+  if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:10px" id="newPoll">＋ تصويت جديد</button>`;
+  h += '</div>';
+  const list = SUGG.slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || (b.at || 0) - (a.at || 0));
   h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>المقترحات والآراء</h2><span class="cnt">${arD(list.length)}</span></div>
   <button class="btn gold block" id="newSug">✍️ أضف مقترحًا أو رأيًا</button><div style="height:10px"></div>`;
   h += list.length ? list.map(sugCard).join('') : '<div class="empty">لا توجد مقترحات بعد — كن أول من يقترح</div>';
@@ -891,10 +995,14 @@ function meetCard(m) {
 function sugCard(s) {
   const st = SST[s.status] || SST.new, likes = Object.keys(s.likes || {}).length, me = myUid(), mine = me && (s.likes || {})[me];
   const nm = sugAuthor(s);
-  return `<div class="card sug ${s.hidden ? 'hid' : ''}"><div style="display:flex;align-items:center;gap:8px"><span class="av">${s.anon ? '؟' : esc(nm.slice(0, 1))}</span><div style="flex:1;min-width:0"><b>${esc(nm)}</b><div class="small muted">${s.at ? fmtH(isoOf(s.at)) : ''}</div></div><span class="pill ${st[1]}">${st[0]}</span></div>
+  const pend = s.status === 'pending';
+  return `<div class="card sug ${s.approved === false && !pend ? 'hid' : ''}"><div style="display:flex;align-items:center;gap:8px"><span class="av">${s.anon ? '؟' : esc(nm.slice(0, 1))}</span><div style="flex:1;min-width:0"><b>${esc(nm)}</b><div class="small muted">${s.at ? fmtH(isoOf(s.at)) : ''}</div></div><span class="pill ${st[1]}">${st[0]}</span></div>
   <div class="pre" style="margin-top:8px">${esc(s.text)}</div>
   ${s.reply ? `<div class="reply"><b>رد أمين الصندوق:</b> ${esc(s.reply)}</div>` : ''}
-  <div class="sug-f"><button class="like ${mine ? 'on' : ''}" data-like="${s.id}">👍 ${arD(likes)}</button>${s.hidden ? '<span class="small" style="color:var(--bad)">مخفي عن الأعضاء</span>' : ''}${MODE === 'admin' ? `<button class="lnk" data-sadm="${s.id}" style="margin-inline-start:auto">إدارة ←</button>` : ''}</div></div>`;
+  ${MODE === 'admin' && pend ? `<div class="btn-row" style="margin-top:10px"><button class="btn" data-sok="${s.id}">✅ نشر</button><button class="btn ghost" data-sno="${s.id}">✕ رفض</button></div>` : ''}
+  ${!pend && s.approved !== false ? `<div class="sug-f"><button class="like ${mine ? 'on' : ''}" data-like="${s.id}">👍 ${arD(likes)}</button>${MODE === 'admin' ? `<button class="lnk" data-sadm="${s.id}" style="margin-inline-start:auto">إدارة ←</button>` : ''}</div>` : ''}
+  ${MODE !== 'admin' && pend ? '<div class="small muted" style="margin-top:8px">يظهر لك أنت فقط حتى يوافق عليه أمين الصندوق</div>' : ''}
+  ${!pend && s.approved === false ? `<div class="sug-f"><span class="small" style="color:var(--bad)">غير منشور — يراه صاحبه فقط</span>${MODE === 'admin' ? `<button class="lnk" data-sadm="${s.id}" style="margin-inline-start:auto">إدارة ←</button>` : ''}</div>` : ''}</div>`;
 }
 async function ensureAnon() {
   if (!auth) throw new Error('تسجيل الدخول غير متاح');
@@ -912,7 +1020,7 @@ function formSuggestion() {
     return sheet('مقترح من أمين الصندوق', `<div class="f"><label>النص</label><textarea class="inp" id="t" rows="5" maxlength="1000"></textarea></div><button class="btn gold block" id="ok">نشر</button>`, (b, close) => {
       $('#ok', b).onclick = async () => {
         const text = $('#t', b).value.trim(); if (!text) return;
-        const doc = {text, anon: false, memberId: null, byAdmin: true, status: 'new', likes: {}, at: Date.now()};
+        const doc = {text, anon: false, memberId: null, byAdmin: true, status: 'new', approved: true, likes: {}, at: Date.now()};
         if (DEMO || SANDBOX) { SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); return; }
         try { doc.uid = auth.currentUser.uid; await fs.collection(`members/${sugCode}/suggestions`).add(doc); close(); toast('تم النشر ✓'); } catch (e) { toast(sugErr(e), true); }
       };
@@ -942,9 +1050,9 @@ function formSuggestion() {
       const needPin = !anon && (forcePin || lsGet(LS_BIND) !== mid);
       const pin = $('#p', b).value.trim();
       if (needPin && !/^\d{4}$/.test(pin)) return err('اكتب رقمك السري (٤ أرقام)');
-      const doc = {text, anon, memberId: anon ? null : mid, status: 'new', likes: {}, at: Date.now()};
+      const doc = {text, anon, memberId: anon ? null : mid, status: 'pending', likes: {}, at: Date.now()};
       $('#ok', b).disabled = true; err('');
-      if (DEMO || SANDBOX) { if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); } if (!anon) lsSet(LS_BIND, mid); SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('تم النشر ✓'); return; }
+      if (DEMO || SANDBOX) { if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); } if (!anon) lsSet(LS_BIND, mid); SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('وصل ✓ بانتظار الموافقة'); return; }
       try {
         const u = await ensureAnon(); doc.uid = u;
         if (needPin) {
@@ -952,7 +1060,8 @@ function formSuggestion() {
           catch (e) { $('#ok', b).disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
         }
         await fs.collection(`members/${sugCode}/suggestions`).add(doc);
-        close(); toast('تم النشر ✓ شكرًا لك');
+        if (!sugUnsub2) listenSugg(sugCode, true);
+        close(); toast('وصل ✓ بيظهر للجميع بعد موافقة أمين الصندوق');
       } catch (e) {
         $('#ok', b).disabled = false;
         if (!anon && /permission/.test(e.code || e.message)) { lsSet(LS_BIND, null); forcePin = true; upd(); return err('رقمك تغيّر — اكتب الرقم الجديد'); }
@@ -980,10 +1089,10 @@ function sugAdmin(id) {
   sheet('إدارة المقترح', `<div class="card pre">${esc(s.text)}</div><div class="small muted" style="margin:6px 0 12px">${esc(sugAuthor(s))}${s.at ? ' · ' + fmtH(isoOf(s.at)) : ''}</div>
   <div class="f"><label>الحالة</label><select class="inp" id="st">${Object.entries(SST).map(([k, v]) => `<option value="${k}" ${s.status === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></div>
   <div class="f"><label>ردك (يظهر للأعضاء)</label><textarea class="inp" id="r" rows="3">${esc(s.reply || '')}</textarea></div>
-  <label class="part"><input type="checkbox" id="h" ${s.hidden ? 'checked' : ''}><span class="n">إخفاؤه عن الأعضاء</span></label><div style="height:10px"></div>
+  <label class="part"><input type="checkbox" id="h" ${s.approved !== false ? 'checked' : ''}><span class="n">منشور للأعضاء</span></label><div style="height:10px"></div>
   <button class="btn gold block" id="ok">حفظ</button>
   <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="toMeet">📌 لجدول الاجتماع القادم</button><button class="btn bad" id="del" style="flex:0 0 auto">حذف</button></div>`, (b, close) => {
-    $('#ok', b).onclick = async () => { await sugUpdate(id, {status: $('#st', b).value, reply: $('#r', b).value.trim(), hidden: $('#h', b).checked}); close(); };
+    $('#ok', b).onclick = async () => { const ap = $('#h', b).checked, st = $('#st', b).value; await sugUpdate(id, {status: ap && st === 'pending' ? 'new' : st, reply: $('#r', b).value.trim(), approved: ap}); close(); };
     $('#del', b).onclick = () => { close(); confirmSheet('حذف المقترح', 'سيُحذف نهائيًا. متأكد؟', 'حذف', () => sugDelete(id), true); };
     $('#toMeet', b).onclick = async () => {
       const up = nextMeeting(DB); if (!up) return toast('لا يوجد اجتماع قادم — جدول اجتماعًا أولًا', true);
@@ -1002,7 +1111,7 @@ function formMeeting(id) {
     const save = async () => mutate(db => {
       db.meetings = db.meetings || []; const d = hVal(b, 'd'); if (!d) throw new Error('اختر التاريخ');
       let x = id ? db.meetings.find(y => y.id === id) : null;
-      if (!x) { x = {id: 'mt' + uid(), status: 'upcoming'}; db.meetings.push(x); }
+      if (!x) { x = {id: 'mt' + uid(), status: 'upcoming', createdAt: Date.now()}; db.meetings.push(x); }
       x.title = $('#t', b).value.trim() || 'اجتماع الصندوق'; x.date = d; x.time = $('#tm', b).value; x.place = $('#pl', b).value.trim(); x.agenda = $('#ag', b).value.trim();
       return (id ? 'تعديل' : 'جدولة') + ' اجتماع: ' + x.title + ' — ' + fmtH(d);
     }, 'اجتماع');
@@ -1055,6 +1164,268 @@ async function migrateSugg(oldC, newC) {
     const bt = fs.batch(); sn.docs.forEach(d => { bt.set(fs.doc(`members/${newC}/suggestions/${d.id}`), d.data()); bt.delete(d.ref); });
     await bt.commit(); listenSugg(newC);
   } catch (e) { toast('تنبيه: لم تُنقل المقترحات: ' + e.message, true); }
+}
+
+/* ---- what's new ---- */
+function newsBanner() {
+  if (!PREV_SEEN || NEWS_HIDE) return '';
+  const since = PREV_SEEN, E = DB.entries.filter(e => (e.createdAt || 0) > since && isLive(e));
+  const items = [];
+  const cn = E.filter(e => e.type === 'contribution'); if (cn.length) items.push(`${arD(cn.length)} ${cn.length === 1 ? 'إيداع' : 'إيداعات'} بمجموع ${fmt(cn.reduce((s, e) => s + e.amount, 0))}${SAR}`);
+  const iv = E.filter(e => e.type === 'invest'); if (iv.length) items.push(`${iv.length === 1 ? 'استثمار جديد' : arD(iv.length) + ' استثمارات جديدة'} 📈`);
+  const mt = E.filter(e => e.type === 'maturity'); if (mt.length) items.push(`استحقاق ${arD(mt.length)} استثمار وتوزيع الأرباح ✨`);
+  const ex = E.filter(e => e.type === 'expense' || e.type === 'withdrawal'); if (ex.length) items.push(`${arD(ex.length)} صرف/سحب`);
+  const sg = SUGG.filter(x => (x.at || 0) > since && x.approved && x.status !== 'pending'); if (sg.length) items.push(`${arD(sg.length)} مقترح جديد 💬`);
+  const pl = (DB.polls || []).filter(x => (x.createdAt || 0) > since); if (pl.length) items.push(`${arD(pl.length)} تصويت جديد 🗳️`);
+  const mg = (DB.meetings || []).filter(x => (x.createdAt || 0) > since); if (mg.length) items.push(`اجتماع جديد مجدول 🗣️`);
+  if (!items.length) return '';
+  return `<div class="news"><span style="font-size:20px">🔔</span><div style="flex:1"><b>منذ زيارتك الأخيرة</b> <span class="small muted">(${fmtH(isoOf(since))})</span><ul>${items.map(t => `<li>${t}</li>`).join('')}</ul></div><button class="x" id="newsX" aria-label="إخفاء">✕</button></div>`;
+}
+
+/* ---- growth chart ---- */
+const CHARTS = {};
+function growthChart(G, gid) {
+  G = (G || []).map(x => Array.isArray(x) ? {d: x[0], v: x[1], p: 0} : Object.assign({p: 0}, x));
+  if (G.length < 2) return '<div class="empty small">الرسم يظهر بعد أكثر من حركة</div>';
+  const span = (new Date(G[G.length - 1].d) - new Date(G[0].d)) / 864e5;
+  const range = span > 365 ? CHART_RANGE : 'all';
+  let pts = G;
+  if (range === 'year') { const cut = addDays(todayISO(), -365); const before = G.filter(x => x.d <= cut).pop(); pts = (before ? [Object.assign({}, before, {d: cut, e: undefined})] : []).concat(G.filter(x => x.d > cut)); }
+  const t = todayISO(); if (pts[pts.length - 1].d < t) pts = pts.concat([Object.assign({}, pts[pts.length - 1], {d: t, e: undefined})]);
+  const W = 600, H = 170, pad = 8;
+  const t0 = new Date(pts[0].d).getTime(), t1 = Math.max(new Date(pts[pts.length - 1].d).getTime(), t0 + 864e5);
+  const mx = Math.max(...pts.map(x => x.v)) * 1.06 || 1;
+  const X = d => W - pad - (new Date(d).getTime() - t0) / (t1 - t0) * (W - 2 * pad);
+  const Y = v => H - pad - Math.max(0, v) / mx * (H - 2 * pad);
+  const step = key => { let d = `M${X(pts[0].d)},${Y(key(pts[0]))}`; for (let i = 1; i < pts.length; i++) d += ` H${X(pts[i].d)} V${Y(key(pts[i]))}`; return d; };
+  const stepBack = key => { let d = ''; for (let i = pts.length - 1; i > 0; i--) d += ` L${X(pts[i].d)},${Y(key(pts[i]))} H${X(pts[i - 1].d)}`; return d + ` L${X(pts[0].d)},${Y(key(pts[0]))}`; };
+  const base = x => x.v - x.p;
+  const green = step(base) + ` V${H - pad} H${X(pts[0].d)} Z`;
+  const hasP = pts.some(x => x.p > 0);
+  const gold = hasP ? step(x => x.v) + stepBack(base) + ' Z' : '';
+  const first = G[0].v, now = pts[pts.length - 1].v, gr = first ? (now - first) / first * 100 : 0;
+  const ev = pts.filter(x => x.e).map(x => `<circle cx="${X(x.d)}" cy="${Y(x.v)}" r="6" fill="#E9C46A" stroke="#16241A" stroke-width="2"/>`).join('');
+  CHARTS[gid] = pts.map(x => ({x: X(x.d) / W, d: x.d, v: x.v, p: x.p, e: x.e}));
+  return `<div class="gwrap gch" data-gid="${gid}"><div class="ghead"><span class="v">${fmt(now)}</span><span class="small muted">ر.س</span>${gr ? `<span class="g">${gr > 0 ? '+' : ''}${arD(gr.toFixed(1))}٪ منذ التأسيس</span>` : ''}
+  ${span > 365 ? `<div class="grange"><button data-gr="year" class="${range === 'year' ? 'on' : ''}">سنة</button><button data-gr="all" class="${range === 'all' ? 'on' : ''}">الكل</button></div>` : ''}</div>
+  <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="touch-action:pan-y">
+  <path d="${green}" fill="#2F6B4F" fill-opacity=".85"/>${gold ? `<path d="${gold}" fill="#E9C46A"/>` : ''}
+  <path d="${step(x => x.v)}" fill="none" stroke="#16241A" stroke-width="2" vector-effect="non-scaling-stroke"/>${ev}
+  <line class="gline" x1="0" x2="0" y1="0" y2="${H}" stroke="#8C6614" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" style="opacity:0"/></svg>
+  <div class="gtip"></div>
+  <div class="chart-lbl"><span>${fmtHM(pts[0].d)}</span><span>${fmtHM(pts[pts.length - 1].d)}</span></div>
+  <div class="glegend"><span><i style="background:#2F6B4F"></i>مساهمات العائلة</span>${hasP ? '<span><i style="background:#E9C46A"></i>أرباح الاستثمار</span>' : ''}<span class="muted">المس الرسم للتفاصيل</span></div></div>`;
+}
+function wireCharts(root) {
+  $$('.gch', root || document).forEach(w => {
+    const pts = CHARTS[w.dataset.gid]; if (!pts) return;
+    const svg = $('svg', w), tip = $('.gtip', w), line = $('.gline', w);
+    const show = ev => {
+      const r = svg.getBoundingClientRect(), cx = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left) / r.width;
+      let best = pts[0]; pts.forEach(p => { if (Math.abs(p.x - cx) < Math.abs(best.x - cx)) best = p; });
+      line.setAttribute('x1', best.x * 600); line.setAttribute('x2', best.x * 600); line.style.opacity = 1;
+      tip.innerHTML = `${fmtH(best.d)}<br><b>${fmt(best.v)} ر.س</b>${best.p ? `<br>منها أرباح ${fmt(best.p)}` : ''}${best.e ? `<br>✨ ${esc(best.e)}` : ''}`;
+      const px = best.x * r.width; tip.style.right = 'auto'; tip.style.left = Math.min(Math.max(px, 70), r.width - 70) + 'px'; tip.style.transform = 'translateX(-50%)'; tip.style.opacity = 1;
+    };
+    const hide = () => { tip.style.opacity = 0; line.style.opacity = 0; };
+    svg.addEventListener('pointerdown', show); svg.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) show(e); });
+    svg.addEventListener('pointerleave', hide); svg.addEventListener('pointerup', () => setTimeout(hide, 1800));
+    $$('[data-gr]', w).forEach(b => b.onclick = () => { CHART_RANGE = b.dataset.gr; render(); });
+  });
+}
+
+/* ---- receipts ---- */
+function tafqit(n) {
+  n = Math.floor(n); if (!n) return 'صفر';
+  const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة', 'عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
+  const tens = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+  const hund = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+  const b1000 = x => { const h = Math.floor(x / 100), r = x % 100, ps = []; if (h) ps.push(hund[h]); if (r) ps.push(r < 20 ? ones[r] : (r % 10 ? ones[r % 10] + ' و' : '') + tens[Math.floor(r / 10)]); return ps.join(' و'); };
+  const sc = (x, one, two, few, many) => x === 1 ? one : x === 2 ? two : x <= 10 ? b1000(x) + ' ' + few : b1000(x) + ' ' + many;
+  const ps = [], mil = Math.floor(n / 1e6), th = Math.floor(n % 1e6 / 1000), rest = n % 1000;
+  if (mil) ps.push(sc(mil, 'مليون', 'مليونان', 'ملايين', 'مليون'));
+  if (th) ps.push(sc(th, 'ألف', 'ألفان', 'آلاف', 'ألف'));
+  if (rest) ps.push(b1000(rest));
+  return ps.join(' و');
+}
+function receiptView(eid, offer) {
+  const e = DB.entries.find(x => x.id === eid); if (!e || !e.receiptNo) return toast('لا يوجد سند لهذه الحركة', true);
+  const m = DB.members.find(x => x.id === e.memberId) || {name: '—'};
+  const after = compute(DB, e.date).M[e.memberId] || {contrib: 0};
+  const hal = Math.round((e.amount % 1) * 100);
+  const words = 'فقط ' + tafqit(e.amount) + ' ريال سعودي' + (hal ? ' و' + tafqit(hal) + ' هللة' : '') + ' لا غير';
+  const txt = `🧾 *سند قبض رقم ${e.receiptNo}*\nصندوق آل مبشر بن عبدالله\n\nاستلمنا من: ${m.name}\nالمبلغ: ${fmt(e.amount)} ريال\n(${words})\nالتاريخ: ${fmtH(e.date)} — ${fmtG(e.date)}\nالبيان: مساهمة في الصندوق${e.note ? ' — ' + e.note : ''}\nإجمالي مساهماتك بعدها: ${fmt(after.contrib)} ريال\n\nجزاك الله خيرًا 🌿\n${SITE_URL}`;
+  const html = `<div class="rcpt"><div class="small muted" style="text-align:center">صندوق آل مبشر بن عبدالله · FAMILY TREASURY</div><h1>سند قبض</h1><div class="no">رقم ${e.receiptNo}</div>
+  <div class="amt">${fmt(e.amount)} ر.س</div><div class="words">${words}</div><div style="height:12px"></div>
+  <div class="row"><span>استلمنا من</span><b>${esc(m.name)}</b></div>
+  <div class="row"><span>التاريخ</span><b>${fmtH(e.date)}</b></div>
+  <div class="row"><span>الموافق</span><b>${fmtG(e.date)}</b></div>
+  <div class="row"><span>البيان</span><b>مساهمة في الصندوق${e.note ? ' — ' + esc(e.note) : ''}</b></div>
+  <div class="row"><span>إجمالي مساهماته بعدها</span><b>${fmt(after.contrib)} ر.س</b></div>
+  <div style="height:70px"></div><div class="small muted">أمين الصندوق</div><div class="seal2">تم<br>الاستلام ✓</div></div>`;
+  sheet(offer ? 'تم الحفظ ✓ — سند القبض' : 'سند قبض', html + `<div class="btn-row" style="margin-top:12px">${MODE === 'admin' ? '<button class="btn gold" id="rwa">💬 إرسال للعضو واتساب</button>' : ''}<button class="btn ghost" id="rpdf">🖨️ PDF</button></div>`, b => {
+    const w = $('#rwa', b); if (w) w.onclick = () => window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(txt), '_blank');
+    $('#rpdf', b).onclick = () => printView(html);
+  });
+}
+
+/* ---- calculator ---- */
+function calcSheet() {
+  const c = compute(DB), bound = lsGet(LS_BIND);
+  const defAmt = MODE === 'admin' ? (c.cash > 0 ? c.cash : '') : (bound && c.M[bound] ? c.M[bound].balance : '');
+  sheet('💹 حاسبة الأرباح', `<div class="f"><label>المبلغ (ر.س)</label><input class="inp" id="ca" type="number" inputmode="decimal" value="${defAmt ? r2(defAmt) : ''}" placeholder="مثال: 10000"><div class="small muted">${MODE === 'admin' ? 'معبّأ بالنقد المتاح — غيّره كما تريد' : bound ? 'معبّأ برصيدك — غيّره كما تريد' : ''}</div></div>
+  <div class="grid2"><div class="f"><label>النسبة السنوية %</label><input class="inp" id="cr" type="number" step="0.01" inputmode="decimal" placeholder="5.5"></div><div class="f"><label>المدة (أشهر)</label><input class="inp" id="cm" type="number" inputmode="numeric" placeholder="6"></div></div>
+  <div id="cres"></div>
+  <div class="btn-row" style="margin-top:10px"><button class="btn ghost" id="cadd">＋ أضف للمقارنة</button>${MODE === 'admin' ? '<button class="btn" id="cinv">📈 استثمر بهذي الأرقام</button>' : ''}</div>
+  <div id="ccmp"></div>`, (b, close) => {
+    const val = () => ({a: +$('#ca', b).value || 0, r: +$('#cr', b).value || 0, m: +$('#cm', b).value || 0});
+    const calc = v => v.a * v.r / 100 * v.m / 12;
+    const upd = () => {
+      const v = val();
+      if (!(v.a > 0 && v.r > 0 && v.m > 0)) { $('#cres', b).innerHTML = '<div class="empty small">اكتب المبلغ والنسبة والمدة</div>'; return; }
+      const pr = calc(v), md = addMonths(todayISO(), v.m);
+      $('#cres', b).innerHTML = `<div class="calc-res"><div class="small" style="color:#CFC8A9">الربح المتوقع</div><div class="big">${fmt2(pr)} ر.س</div>
+      <div class="small" style="margin-top:6px">المجموع عند الاستحقاق: <b>${fmt2(v.a + pr)} ر.س</b><br>لو بدأ اليوم يستحق: <b>${fmtH(md)}</b></div></div>`;
+    };
+    const cmpR = () => {
+      if (!CMP.length) { $('#ccmp', b).innerHTML = ''; return; }
+      const best = Math.max(...CMP.map(calc));
+      $('#ccmp', b).innerHTML = `<div class="sh" style="margin-top:16px"><h2 style="font-size:14px">المقارنة</h2><button class="lnk" id="cclr" style="margin-inline-start:auto">مسح</button></div>` +
+        CMP.map((v, i) => `<div class="cmp ${calc(v) === best ? 'best' : ''}"><div style="flex:1"><b>${mLabel(v.m)} · ${v.r}٪</b><div class="small muted">على ${fmt(v.a)}</div></div><b class="num" style="color:var(--good)">+${fmt2(calc(v))}</b>${calc(v) === best ? '<span>⭐</span>' : ''}<button class="lnk" data-cx="${i}">✕</button></div>`).join('') +
+        (MODE === 'admin' && CMP.length > 1 ? '<button class="btn gold block" style="margin-top:10px" id="cpoll">🗳️ اطرح المقارنة للتصويت</button>' : '');
+      const cl = $('#cclr', b); if (cl) cl.onclick = () => { CMP = []; cmpR(); };
+      $$('[data-cx]', b).forEach(x => x.onclick = () => { CMP.splice(+x.dataset.cx, 1); cmpR(); });
+      const cp = $('#cpoll', b); if (cp) cp.onclick = () => { close(); formPoll({q: 'أي عرض استثمار نختار؟', opts: CMP.map(v => `${mLabel(v.m)} · ${v.r}٪ (ربح ≈ ${fmt2(calc(v))})`)}); };
+    };
+    ['#ca', '#cr', '#cm'].forEach(k => $(k, b).oninput = upd); upd(); cmpR();
+    $('#cadd', b).onclick = () => { const v = val(); if (!(v.a > 0 && v.r > 0 && v.m > 0)) return toast('أكمل الخانات أولًا', true); CMP.push(v); cmpR(); };
+    const ci = $('#cinv', b); if (ci) ci.onclick = () => { const v = val(); close(); formInvest({title: v.m ? `وديعة ${mLabel(v.m)}` : '', rate: v.r || '', months: v.m || ''}); };
+  });
+}
+
+/* ---- polls ---- */
+const mLabel = m => m == 1 ? 'شهر' : m == 2 ? 'شهرين' : m + (m <= 10 ? ' أشهر' : ' شهرًا');
+const fmt2 = n => (Number(n) || 0).toLocaleString('en-US', {maximumFractionDigits: 2});
+const pollOpen = pl => pl.status === 'open' && Date.now() < pl.closeAtMs;
+const openPolls = () => (DB.polls || []).filter(pollOpen);
+function pollTally(pl) {
+  if (DEMO || SANDBOX) { const b = BALLOTS[pl.id] || {}; const counts = {}; Object.values(b).forEach(o => counts[o] = (counts[o] || 0) + 1); return {counts, total: Object.keys(b).length}; }
+  const v = VOTES[pl.id] || {}; return {counts: v.counts || {}, total: v.total || 0};
+}
+function pollCard(pl) {
+  const open = pollOpen(pl), T = pollTally(pl), ball = BALLOTS[pl.id] || {}, showNames = MODE === 'admin' || pl.mode === 'public';
+  const elig = pl.eligible || [], bound = lsGet(LS_BIND), myVote = lsGet('mubasher_vote_' + pl.id) ?? (bound && ball[bound] !== undefined ? String(ball[bound]) : null);
+  const canVote = open && (MODE !== 'admin' || true) && myVote === null;
+  const maxC = Math.max(0, ...pl.opts.map((_, i) => T.counts[i] || 0));
+  const notVoted = showNames ? elig.filter(id => ball[id] === undefined) : [];
+  return `<div class="card poll" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><b style="font-family:Cairo;flex:1">${esc(pl.q)}</b><span class="pill ${open ? 'blue' : 'gray'}">${open ? 'مفتوح' : 'مغلق'}</span></div>
+  <div class="small muted" style="margin-top:2px">${pl.mode === 'public' ? '🔓 علني' : '🔒 سرّي بين الأعضاء'} · ${open ? 'يُغلق ' + fmtH(pl.closeDate) : 'أُغلق'} · صوّت ${arD(T.total)} من ${arD(elig.length)}</div>
+  ${pl.opts.map((o, i) => { const n = T.counts[i] || 0, pc = T.total ? Math.round(n / T.total * 100) : 0, names = showNames ? Object.entries(ball).filter(([, v]) => v === i).map(([k]) => memName(DB, k)) : [];
+    return `<button class="opt ${!open && n === maxC && n > 0 ? 'win' : ''} ${myVote === String(i) ? 'mine' : ''}" ${canVote ? `data-vote="${pl.id}|${i}"` : 'disabled'}><div class="fill" data-w="${pc}"></div><span><span>${myVote === String(i) ? '✓ ' : ''}${esc(o)}</span><b class="num" style="white-space:nowrap">${arD(pc)}٪ <small style="font-weight:600;color:var(--ink2)">(${arD(n)})</small></b></span>${names.length ? `<div class="names">${names.map(esc).join('، ')}</div>` : ''}</button>`; }).join('')}
+  ${canVote ? '<div class="small muted" style="margin-top:8px">اضغط على خيارك للتصويت — مرة واحدة فقط' + (elig.length < DB.members.length ? '، وللأعضاء المحددين' : '') + '</div>' : ''}
+  ${myVote !== null && open ? '<div class="small" style="color:var(--good);margin-top:8px">✓ تم تسجيل صوتك</div>' : ''}
+  ${notVoted.length && open ? `<div class="small muted" style="margin-top:8px">لم يصوّت بعد: ${notVoted.map(id => esc(memName(DB, id))).join('، ')}</div>` : ''}
+  ${!showNames ? '' : ''}
+  ${MODE === 'admin' ? `<div class="btn-row" style="margin-top:10px">${open ? `<button class="btn ghost" data-premind="${pl.id}">💬 تذكير</button><button class="btn ghost" data-pclose2="${pl.id}">🔒 إغلاق</button>` : `<button class="btn" data-pdec="${pl.id}">📝 للقرارات</button>`}<button class="btn ghost" data-pdel="${pl.id}" style="flex:0 0 auto">🗑️</button></div>` : ''}</div>`;
+}
+function formPoll(pre) {
+  const ms = DB.members.filter(m => m.active !== false), c = compute(DB);
+  const invs = DB.investments.filter(i => i.status !== 'cancelled');
+  sheet('🗳️ تصويت جديد', `<div class="f"><label>السؤال</label><input class="inp" id="q" value="${esc(pre && pre.q || '')}" placeholder="مثال: نجدد الوديعة لمدة سنة؟"></div>
+  <div class="f"><label>الخيارات (خيار في كل سطر)</label><textarea class="inp" id="o" rows="4">${esc(pre && pre.opts ? pre.opts.join('\n') : 'نعم\nلا\nممتنع')}</textarea></div>
+  <div class="f"><label>نوع التصويت</label>
+   <label class="part"><input type="radio" name="md" value="public" checked><span class="n">🔓 علني<small>يظهر للجميع من صوّت بماذا</small></span></label>
+   <label class="part"><input type="radio" name="md" value="secret"><span class="n">🔒 سرّي بين الأعضاء<small>الأعضاء يرون العدد فقط — أنت ترى التفاصيل</small></span></label></div>
+  <div class="f"><label>آخر يوم للتصويت (هجري)</label>${hInput('cd', addDays(todayISO(), 7))}</div>
+  <div class="f"><label>من يحق له التصويت؟</label>
+   <div class="btn-row" style="margin-bottom:6px"><button class="btn ghost" data-q="all" style="padding:6px">الكل</button><button class="btn ghost" data-q="done" style="padding:6px">المكتملين</button>${invs.length ? `<select class="inp" id="qi" style="flex:1;padding:6px"><option value="">مشاركو استثمار…</option>${invs.map(i => `<option value="${i.id}">${esc(i.title)}</option>`).join('')}</select>` : ''}</div>
+   ${ms.map(m => `<label class="part"><input type="checkbox" data-el="${m.id}" checked><span class="n">${esc(m.name)}</span></label>`).join('')}
+   <div class="small muted" id="elc"></div></div>
+  <button class="btn gold block" id="ok">إنشاء التصويت</button>`, (b, close) => {
+    const cnt = () => $('#elc', b).textContent = 'المحددون: ' + arD($$('[data-el]', b).filter(x => x.checked).length);
+    const setSel = f => { $$('[data-el]', b).forEach(x => x.checked = f(x.dataset.el)); cnt(); };
+    $$('[data-el]', b).forEach(x => x.onchange = cnt); cnt();
+    $$('[data-q]', b).forEach(x => x.onclick = () => setSel(x.dataset.q === 'all' ? () => true : id => c.M[id] && c.M[id].contrib >= target(DB, DB.members.find(m => m.id === id))));
+    const qi = $('#qi', b); if (qi) qi.onchange = () => { const iv = DB.investments.find(i => i.id === qi.value); if (iv) setSel(id => !!(iv.shares || {})[id]); };
+    $('#ok', b).onclick = async () => {
+      const q = $('#q', b).value.trim(), opts = $('#o', b).value.split('\n').map(t => t.trim()).filter(Boolean), mode = $('input[name=md]:checked', b).value;
+      const eligible = $$('[data-el]', b).filter(x => x.checked).map(x => x.dataset.el), cd = hVal(b, 'cd');
+      if (!q) return toast('اكتب السؤال', true); if (opts.length < 2) return toast('أضف خيارين على الأقل', true);
+      if (!eligible.length) return toast('حدد من يحق له التصويت', true); if (!cd || cd < todayISO()) return toast('تاريخ الإغلاق غير صحيح', true);
+      const id = 'pl' + uid(), closeAtMs = new Date(cd + 'T23:59:59').getTime();
+      const counts = {}; opts.forEach((_, i) => counts[i] = 0);
+      const vdoc = {counts, total: 0, eligible, nOpts: opts.length, closeAtMs, mode};
+      if (await mutate(db => { db.polls = db.polls || []; db.polls.push({id, q, opts, mode, eligible, closeDate: cd, closeAtMs, status: 'open', createdAt: Date.now()}); return 'تصويت جديد: ' + q; }, 'تصويت', {writes: [['votes/' + id, vdoc]]})) {
+        if (DEMO || SANDBOX) BALLOTS[id] = {};
+        syncPolls(); close();
+        confirmSheet('تم إنشاء التصويت ✓', 'تبي ترسل إعلان التصويت للقروب؟', '💬 إرسال', () => window.open('https://wa.me/?text=' + encodeURIComponent(`🗳️ تصويت جديد — صندوق آل مبشر بن عبدالله\n\n${q}\n${opts.map(o => '• ' + o).join('\n')}\n\n${mode === 'public' ? 'تصويت علني' : 'تصويت سرّي بين الأعضاء'} · آخر يوم: ${fmtH(cd)}\nصوّت من هنا (قسم المجلس): ${SITE_URL}`), '_blank'));
+      }
+    };
+  });
+}
+function voteSheet(pid, opt) {
+  const pl = (DB.polls || []).find(x => x.id === pid); if (!pl) return;
+  const bound = lsGet(LS_BIND), elig = DB.members.filter(m => (pl.eligible || []).includes(m.id));
+  sheet('تأكيد التصويت', `<div class="card" style="text-align:center"><div class="small muted">${esc(pl.q)}</div><div style="font-family:Cairo;font-weight:900;font-size:20px;margin-top:4px">${esc(pl.opts[opt])}</div></div>
+  <div class="f" style="margin-top:12px"><label>اسمك</label><select class="inp" id="m"><option value="">— اختر اسمك —</option>${elig.map(m => `<option value="${m.id}" ${m.id === bound ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>
+  <div class="f" id="pinBox"><label>رقمك السري (٤ أرقام)</label><input class="inp code-inp" id="p" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" style="font-size:22px;letter-spacing:6px"></div>
+  <div class="small muted" style="margin-bottom:8px">${pl.mode === 'public' ? '🔓 تصويت علني: سيظهر اسمك مع اختيارك' : '🔒 سرّي بين الأعضاء: لن يرى الأعضاء اختيارك'} · لا يمكن تغيير الصوت بعد التأكيد</div>
+  <div id="err" class="small" style="color:var(--bad);min-height:20px"></div>
+  <button class="btn gold block" id="ok">تأكيد صوتي</button>`, (b, close) => {
+    let forcePin = false;
+    const upd = () => $('#pinBox', b).classList.toggle('hidden', !forcePin && !!bound && $('#m', b).value === bound);
+    $('#m', b).onchange = upd; upd();
+    const err = t => $('#err', b).textContent = t;
+    $('#ok', b).onclick = async () => {
+      const mid = $('#m', b).value; if (!mid) return err('اختر اسمك');
+      const needPin = forcePin || lsGet(LS_BIND) !== mid, pin = $('#p', b).value.trim();
+      if (needPin && !/^\d{4}$/.test(pin)) return err('اكتب رقمك السري');
+      $('#ok', b).disabled = true; err('');
+      if (DEMO || SANDBOX) {
+        if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); }
+        BALLOTS[pid] = BALLOTS[pid] || {}; if (BALLOTS[pid][mid] !== undefined) { $('#ok', b).disabled = false; return err('سبق أن صوّت هذا العضو'); }
+        BALLOTS[pid][mid] = opt; lsSet(LS_BIND, mid); lsSet('mubasher_vote_' + pid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓'); return;
+      }
+      try {
+        const u = await ensureAnon();
+        if (needPin) { try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); lsSet(LS_BIND, mid); } catch (e) { $('#ok', b).disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); } }
+        const bt = fs.batch(), inc = firebase.firestore.FieldValue.increment(1);
+        bt.set(fs.doc(`votes/${pid}/ballots/${mid}`), {opt, uid: u, at: Date.now()});
+        bt.update(fs.doc('votes/' + pid), {total: inc, ['counts.' + opt]: inc});
+        await bt.commit();
+        lsSet('mubasher_vote_' + pid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓');
+      } catch (e) {
+        $('#ok', b).disabled = false;
+        if (/permission/.test(e.code || e.message)) { if (!needPin) { forcePin = true; upd(); } return err('تعذّر: ربما سبق أن صوّت هذا العضو، أو انتهى التصويت، أو رقمك تغيّر'); }
+        err(sugErr(e));
+      }
+    };
+  });
+}
+function closePoll(pid) {
+  confirmSheet('إغلاق التصويت', 'سيُغلق التصويت الآن ولن يُقبل أي صوت بعده. تكمل؟', 'إغلاق', () => mutate(db => { const p = db.polls.find(x => x.id === pid); p.status = 'closed'; p.closeAtMs = Math.min(p.closeAtMs, Date.now()); return 'إغلاق تصويت: ' + p.q; }, 'تصويت', {writes: [['votes/' + pid, {closeAtMs: Date.now()}, true]]}));
+}
+function deletePoll(pid) {
+  confirmSheet('حذف التصويت', 'سيُحذف التصويت ونتيجته من الصفحة. متأكد؟', 'حذف', () => mutate(db => { const p = db.polls.find(x => x.id === pid); db.polls = db.polls.filter(x => x.id !== pid); return 'حذف تصويت: ' + p.q; }, 'تصويت', {writes: [['votes/' + pid, null]]}), true);
+}
+function pollRemind(pid) {
+  const pl = DB.polls.find(x => x.id === pid);
+  window.open('https://wa.me/?text=' + encodeURIComponent(`🗳️ تذكير بالتصويت — صندوق آل مبشر بن عبدالله\n\n${pl.q}\nآخر يوم: ${fmtH(pl.closeDate)}\nصوّت من هنا (قسم المجلس): ${SITE_URL}`), '_blank');
+}
+function pollToDecision(pid) {
+  const pl = DB.polls.find(x => x.id === pid), T = pollTally(pl);
+  const best = pl.opts.map((o, i) => [o, T.counts[i] || 0]).sort((a, b) => b[1] - a[1]);
+  const line = `نتيجة تصويت «${pl.q}»: ${best[0][0]} (${best[0][1]} من ${T.total} صوت، شارك ${T.total} من ${(pl.eligible || []).length})`;
+  const mts = (DB.meetings || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+  if (!mts.length) return toast('لا توجد اجتماعات — جدول اجتماعًا أولًا', true);
+  sheet('نقل النتيجة للقرارات', `<div class="card pre">${esc(line)}</div><div class="f" style="margin-top:12px"><label>إلى أي اجتماع؟</label><select class="inp" id="mt">${mts.map(m => `<option value="${m.id}">${esc(m.title)} — ${fmtH(m.date)}${m.status === 'done' ? '' : ' (قادم)'}</option>`).join('')}</select></div><button class="btn gold block" id="ok">إضافة للقرارات</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { if (await mutate(db => { const m = db.meetings.find(x => x.id === $('#mt', b).value); m.decisions = (m.decisions || []).concat([line]); return 'نتيجة تصويت للقرارات: ' + pl.q; }, 'قرار')) close(); };
+  });
+}
+function sugReject(id) {
+  sheet('رفض المقترح', `<div class="f"><label>رد خاص لصاحب المقترح (اختياري)</label><textarea class="inp" id="r" rows="3" placeholder="يظهر لصاحبه فقط"></textarea></div><button class="btn bad block" id="ok">رفض</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { await sugUpdate(id, {status: 'rejected', approved: false, reply: $('#r', b).value.trim()}); close(); };
+  });
 }
 
 /* ---- more / admin ---- */
@@ -1124,7 +1495,18 @@ function wireMain(c) {
   $$('[data-menu]').forEach(b => b.onclick = () => menuAction(b.dataset.menu));
   const ns = $('#newSug'); if (ns) ns.onclick = formSuggestion;
   $$('[data-like]').forEach(b => b.onclick = () => toggleLike(b.dataset.like));
+  $$('[data-vote]').forEach(b => b.onclick = () => { const [pid, o] = b.dataset.vote.split('|'); voteSheet(pid, +o); });
+  $$('[data-rcpt]').forEach(b => b.onclick = () => receiptView(b.dataset.rcpt));
+  const oc = $('#openCalc'); if (oc) oc.onclick = () => calcSheet();
+  const nx = $('#newsX'); if (nx) nx.onclick = () => { NEWS_HIDE = true; render(); };
   if (MODE !== 'admin') return;
+  const np2 = $('#newPoll'); if (np2) np2.onclick = () => formPoll();
+  $$('[data-pclose2]').forEach(b => b.onclick = () => closePoll(b.dataset.pclose2));
+  $$('[data-pdel]').forEach(b => b.onclick = () => deletePoll(b.dataset.pdel));
+  $$('[data-pdec]').forEach(b => b.onclick = () => pollToDecision(b.dataset.pdec));
+  $$('[data-premind]').forEach(b => b.onclick = () => pollRemind(b.dataset.premind));
+  $$('[data-sok]').forEach(b => b.onclick = () => sugUpdate(b.dataset.sok, {status: 'new', approved: true}));
+  $$('[data-sno]').forEach(b => b.onclick = () => sugReject(b.dataset.sno));
   const nmt = $('#newMeet'); if (nmt) nmt.onclick = () => formMeeting();
   $$('[data-medit]').forEach(b => b.onclick = () => formMeeting(b.dataset.medit));
   $$('[data-mmin]').forEach(b => b.onclick = () => formMinutes(b.dataset.mmin));
@@ -1162,7 +1544,12 @@ function formContribution(mid) {
   <div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
   <div class="f"><label>ملاحظة (اختياري)</label><input class="inp" id="n" placeholder="مثال: تحويل بنكي"></div>
   <button class="btn gold block" id="ok">حفظ المساهمة</button>`, (b, close) => {
-    $('#ok', b).onclick = async () => { if (await mutate(db => A.contribution(db, $('#m', b).value, +$('#a', b).value, hVal(b, 'd'), $('#n', b).value.trim()), 'مساهمة')) close(); };
+    $('#ok', b).onclick = async () => {
+      let eid = null;
+      if (await mutate(db => { const r = A.contribution(db, $('#m', b).value, +$('#a', b).value, hVal(b, 'd'), $('#n', b).value.trim()); eid = db.entries[db.entries.length - 1].id; return r; }, 'مساهمة')) {
+        close(); if (DEMO || SANDBOX) ensureReceipts(DB); setTimeout(() => receiptView(eid, true), 350);
+      }
+    };
   });
 }
 function formWithdrawal(mid) {
@@ -1186,7 +1573,7 @@ function formExpense() {
     $('#ok', b).onclick = async () => { if (await mutate(db => A.expense(db, +$('#a', b).value, hVal(b, 'd'), $('#t', b).value.trim(), $('#n', b).value.trim()), 'مصروف')) close(); };
   });
 }
-function formInvest() {
+function formInvest(pre) {
   const c = compute(DB);
   const holders = DB.members.filter(m => c.M[m.id] && c.M[m.id].cash > 0.001);
   if (!holders.length) { toast('لا يوجد نقد متاح للاستثمار حاليًا', true); return; }
@@ -1202,6 +1589,7 @@ function formInvest() {
     $('#all', b).onclick = () => { $$('[data-pc]', b).forEach(cb => { cb.checked = true; $(`[data-pv="${cb.dataset.pc}"]`, b).value = c.M[cb.dataset.pc].cash; }); upd(); };
     $('#none', b).onclick = () => { $$('[data-pc]', b).forEach(cb => { cb.checked = false; $(`[data-pv="${cb.dataset.pc}"]`, b).value = ''; }); upd(); };
     upd();
+    if (pre) { $('#t', b).value = pre.title || ''; $('#r', b).value = pre.rate || ''; $('#mo', b).value = pre.months || ''; }
     $('#ok', b).onclick = async () => {
       const shares = {}; $$('[data-pc]', b).forEach(cb => { if (cb.checked) shares[cb.dataset.pc] = +$(`[data-pv="${cb.dataset.pc}"]`, b).value || 0; });
       const principal = Object.values(shares).reduce((s, v) => s + v, 0), s = hVal(b, 's');
