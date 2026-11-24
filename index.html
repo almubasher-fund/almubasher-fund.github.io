@@ -685,7 +685,7 @@ function enterMember(code, mid) {
   if (DEMO) { MODE = 'member'; markSeen(); render(); return; }
   unsubs.push(fs.doc('family/main').onSnapshot(d => {
     if (!d.exists) { MODE = 'onboard'; OB = {step: 'upgrading', code}; render(); return; }
-    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); const fc = DB.settings.familyCode || code; if (fc) lsSet(LS_CODE, fc); listenSugg(fc); syncPolls(); render();
+    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); const fc = DB.settings.familyCode || code || lsGet(LS_CODE); if (fc) lsSet(LS_CODE, fc); listenSugg(fc); syncPolls(); render();
   }, err => { stopListeners(); ME = null; lsSet(LS_BIND, null); toast('حسابك يحتاج توثيق من جديد', true); OB = {step: 'welcome', code}; MODE = 'onboard'; render(); }));
 }
 async function memberLogout() {
@@ -765,7 +765,8 @@ function listenAdmin() {
     setSync('on');
     if (!s.exists) { DB = null; MODE = 'setup'; render(); return; }
     DB = s.data(); MODE = 'admin'; markSeen(); listenSugg(DB.settings.familyCode); syncPolls(); render();
-    if ((DB.schema || 0) < 3) { DB.schema = 3; persist('ترقية الصندوق', 'تفعيل الحسابات الشخصية').then(() => toast('تم تحديث الصندوق للحسابات الشخصية ✓')).catch(e => toast('تعذّر التحديث: ' + e.message, true)); }
+    if (!window._nullFix) { window._nullFix = true; migrateSugg('null', DB.settings.familyCode); }
+    if ((DB.schema || 0) < 4) { DB.schema = 4; persist('ترقية الصندوق', 'تفعيل الحسابات الشخصية').then(() => toast('تم تحديث الصندوق للحسابات الشخصية ✓')).catch(e => toast('تعذّر التحديث: ' + e.message, true)); }
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
   unsubs.push(fs.collection('accounts').onSnapshot(s => {
     ACCTS = {}; s.docs.forEach(d => ACCTS[d.id] = d.data()); softRender();
@@ -1186,6 +1187,7 @@ function formSuggestion() {
     $('#ok', b).onclick = async () => {
       const text = $('#t', b).value.trim(); if (!text) return err('اكتب المقترح');
       const anon = $('input[name=who]:checked', b).value === 'anon';
+      if (!sugCode && !(DEMO || SANDBOX)) return err('حدّث الصفحة وحاول مرة ثانية');
       const doc = {text, anon, memberId: anon ? null : ME, status: 'pending', likes: {}, at: Date.now()};
       $('#ok', b).disabled = true; err('');
       if (DEMO || SANDBOX) { SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('وصل ✓ بانتظار الموافقة'); return; }
