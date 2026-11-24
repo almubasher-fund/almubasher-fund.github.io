@@ -568,7 +568,7 @@ function ensureReceipts(db) {
   db.receiptSeq = db.receiptSeq || 0;
   db.entries.filter(e => e.type === 'contribution' && !e.receiptNo).sort(byDate).forEach(e => { db.receiptSeq++; e.receiptNo = g2h(e.date).y + '/' + String(db.receiptSeq).padStart(3, '0'); });
 }
-function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); delete v.settings.familyCode; return v; }
+function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); return v; }
 function buildPublic(db) {
   const c = compute(db);
   return {
@@ -649,6 +649,14 @@ function listenMember(code, fromInput) {
     return true;
   })();
 }
+async function resolveSaved() {
+  try {
+    const u = await ensureAnon(), bs = await fs.doc('bindings/' + u).get();
+    if (!bs.exists) { lsSet(LS_BIND, null); return; }
+    const mid = bs.data().memberId, a = await fs.doc('accounts/' + mid).get();
+    if (a.exists) a.data().status === 'approved' ? enterMember(null, mid) : goPending(null, mid);
+  } catch (e) { lsSet(LS_BIND, null); }
+}
 async function resolveMember(code) {
   try {
     const u = await ensureAnon();
@@ -677,7 +685,7 @@ function enterMember(code, mid) {
   if (DEMO) { MODE = 'member'; markSeen(); render(); return; }
   unsubs.push(fs.doc('family/main').onSnapshot(d => {
     if (!d.exists) { MODE = 'onboard'; OB = {step: 'upgrading', code}; render(); return; }
-    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); listenSugg(code); syncPolls(); render();
+    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); const fc = DB.settings.familyCode || code; if (fc) lsSet(LS_CODE, fc); listenSugg(fc); syncPolls(); render();
   }, err => { stopListeners(); ME = null; lsSet(LS_BIND, null); toast('حسابك يحتاج توثيق من جديد', true); OB = {step: 'welcome', code}; MODE = 'onboard'; render(); }));
 }
 async function memberLogout() {
@@ -698,7 +706,7 @@ function onboardView() {
     b = `<div class="card"><div style="text-align:center"><span class="av" style="width:56px;height:56px;font-size:24px;margin:0 auto">${esc(n.slice(0, 1))}</span><h2 style="margin-top:8px">${esc(n)}</h2></div>
     <div class="tabs2"><button data-obt="new" class="${isNew ? 'on' : ''}">أول مرة أدخل</button><button data-obt="login" class="${isNew ? '' : 'on'}">عندي رقم سري</button></div>
     <div class="f"><label>${isNew ? 'اختر رقمًا سريًا من ٨ أرقام' : 'اكتب رقمك السري (٨ أرقام)'}</label><input class="inp code-inp" id="obp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"></div>
-    ${isNew ? `<div class="f"><label>أعد كتابة الرقم للتأكيد</label><input class="inp code-inp" id="obp2" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"></div><div class="small muted" style="margin-bottom:10px">اختر رقمًا تحفظه، مثل تاريخ ميلادك. لا تعطيه لأحد.</div>` : ''}
+    ${isNew ? `<div class="f"><label>أعد كتابة الرقم للتأكيد</label><input class="inp code-inp" id="obp2" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"></div><div class="small muted" style="margin-bottom:10px">اختر رقمًا تحفظه أنت ولا يخمّنه غيرك (تجنّب تاريخ ميلادك). بعد التوثيق تدخل بهذا الرقم مباشرة.</div>` : ''}
     <div id="obErr" class="small" style="color:var(--bad);min-height:22px;text-align:center"></div>
     <button class="btn gold block" id="obGo">${isNew ? 'إرسال للتوثيق' : 'دخول'}</button></div>`;
   } else if (st === 'pending') {
@@ -723,7 +731,7 @@ function wireOnboard() {
     if (isNew && $('#obp2').value.trim() !== pin) return err('الرقمان غير متطابقين');
     go.disabled = true; err('');
     if (DEMO) {
-      if (isNew) { if (ACCTS[mid]) { go.disabled = false; return err('هذا الاسم مسجّل مسبقًا — اختر "عندي رقم سري" أو تواصل مع المشرف العام'); } ACCTS[mid] = {pin, status: 'pending', at: Date.now()}; return goPending(code, mid); }
+      if (isNew) { if (ACCTS[mid] || Object.values(ACCTS).some(a => a.pin === pin)) { go.disabled = false; return err('هذا الرقم غير متاح — اختر رقمًا آخر'); } ACCTS[mid] = {pin, status: 'pending', at: Date.now()}; return goPending(code, mid); }
       const a = ACCTS[mid]; if (!a || a.pin !== pin) { go.disabled = false; return err('الرقم غير صحيح'); }
       return a.status === 'approved' ? enterMember(code, mid) : goPending(code, mid);
     }
@@ -731,11 +739,12 @@ function wireOnboard() {
       const u = await ensureAnon();
       if (isNew) {
         let exists = false;
-        try { await fs.doc('accounts/' + mid).set({pin, status: 'pending', uid: u, at: Date.now(), code}); lsSet('mubasher_reg_' + mid, '1'); }
+        if (pin === code) { go.disabled = false; return err('لا تستخدم رمز العائلة كرقم شخصي — اختر رقمًا آخر'); }
+        try { const bt = fs.batch(); bt.set(fs.doc('accounts/' + mid), {pin, status: 'pending', uid: u, at: Date.now(), code}); bt.set(fs.doc('pinIndex/' + pin), {memberId: mid}); await bt.commit(); lsSet('mubasher_reg_' + mid, '1'); }
         catch (e) { if (!/permission/.test(e.code || e.message)) { go.disabled = false; return err(sugErr(e)); } exists = true; }
         if (exists) {
           try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); }
-          catch (e) { go.disabled = false; OB.mode = 'login'; render(); $('#obErr').textContent = 'هذا الاسم له حساب مسبقًا — اكتب رقمك السري هنا. إذا نسيته تواصل مع المشرف العام'; return; }
+          catch (e) { go.disabled = false; return err('هذا الرقم غير متاح — اختر رقمًا آخر. وإذا كان اسمك مسجّلًا من قبل فادخل برقمك من الشاشة الأولى مباشرة'); }
           lsSet(LS_BIND, mid);
           const a = await fs.doc('accounts/' + mid).get();
           return a.data().status === 'approved' ? enterMember(code, mid) : goPending(code, mid);
@@ -758,7 +767,10 @@ function listenAdmin() {
     DB = s.data(); MODE = 'admin'; markSeen(); listenSugg(DB.settings.familyCode); syncPolls(); render();
     if ((DB.schema || 0) < 3) { DB.schema = 3; persist('ترقية الصندوق', 'تفعيل الحسابات الشخصية').then(() => toast('تم تحديث الصندوق للحسابات الشخصية ✓')).catch(e => toast('تعذّر التحديث: ' + e.message, true)); }
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
-  unsubs.push(fs.collection('accounts').onSnapshot(s => { ACCTS = {}; s.docs.forEach(d => ACCTS[d.id] = d.data()); softRender(); }, () => {}));
+  unsubs.push(fs.collection('accounts').onSnapshot(s => {
+    ACCTS = {}; s.docs.forEach(d => ACCTS[d.id] = d.data()); softRender();
+    if (!window._pinIdxDone) { window._pinIdxDone = true; const bt = fs.batch(); let n = 0; Object.entries(ACCTS).forEach(([mid, a]) => { if (a.pin) { bt.set(fs.doc('pinIndex/' + a.pin), {memberId: mid}); n++; } }); if (n) bt.commit().catch(() => {}); }
+  }, () => {}));
   unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
 }
 
@@ -1540,7 +1552,7 @@ async function acctAction(mid, approve) {
   if (DEMO || SANDBOX) { if (approve) ACCTS[mid].status = 'approved'; else delete ACCTS[mid]; toast('تم ✓'); return; }
   try {
     const bt = fs.batch();
-    if (approve) bt.update(fs.doc('accounts/' + mid), {status: 'approved', approvedAt: Date.now()}); else bt.delete(fs.doc('accounts/' + mid));
+    if (approve) bt.update(fs.doc('accounts/' + mid), {status: 'approved', approvedAt: Date.now()}); else { bt.delete(fs.doc('accounts/' + mid)); if (ACCTS[mid] && ACCTS[mid].pin) bt.delete(fs.doc('pinIndex/' + ACCTS[mid].pin)); }
     bt.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action: 'حسابات', detail: (approve ? 'توثيق حساب: ' : 'إلغاء/إعادة تعيين حساب: ') + n})}, {merge: true});
     await bt.commit(); toast(approve ? 'تم توثيق ' + n + ' ✓' : 'تم ✓');
   } catch (e) { toast('تعذّر: ' + e.message, true); }
@@ -1957,17 +1969,34 @@ function exportExcel() {
 
 /* ---- logins ---- */
 function formMemberLogin() {
-  sheet('دخول أفراد العائلة', `<p style="margin-top:0;text-align:center">اكتب رمز الدخول (8 أرقام).<br><span class="small muted">تكتبه مرة واحدة فقط، ويتذكره جوالك.</span></p>
-  <input class="inp code-inp" id="c" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"><div id="err" class="small" style="color:var(--bad);text-align:center;min-height:22px;margin-top:6px"></div>
+  sheet('دخول أفراد العائلة', `<p style="margin-top:0;text-align:center"><b>عندك رقم سري شخصي؟</b> اكتبه وتدخل على طول.<br><span class="small muted">أول مرة؟ اكتب <b>رمز العائلة</b> المرسل في القروب، وبعدها تختار اسمك وتسوي رقمك.</span></p>
+  <input class="inp code-inp" id="c" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"><div id="err" class="small" style="color:var(--bad);text-align:center;min-height:22px;margin-top:6px"></div>
   <button class="btn gold block" id="ok">دخول</button>`, (b, close) => {
+    const btn = $('#ok', b), err = t => $('#err', b).textContent = t;
+    const reset = () => { btn.disabled = false; btn.textContent = 'دخول'; };
     const go = async () => {
-      const code = $('#c', b).value.trim();
-      if (!/^\d{8}$/.test(code)) { $('#err', b).textContent = 'الرمز 8 أرقام'; return; }
-      $('#ok', b).disabled = true; $('#ok', b).textContent = 'جاري التحقق…';
-      const ok = await listenMember(code, true);
-      if (ok) { close(); toast('أهلًا بك 🌿'); } else { $('#ok', b).disabled = false; $('#ok', b).textContent = 'دخول'; $('#err', b).textContent = 'الرمز غير صحيح'; listenGuest(); }
+      const v = $('#c', b).value.trim();
+      if (!/^\d{8}$/.test(v)) return err('الرقم ٨ أرقام');
+      btn.disabled = true; btn.textContent = 'جاري التحقق…'; err('');
+      if (DEMO) {
+        const hit = Object.entries(ACCTS).find(([, a]) => a.pin === v);
+        if (hit) { close(); ROSTER = {}; DB.members.forEach(m => ROSTER[m.id] = m.name); return hit[1].status === 'approved' ? enterMember('1', hit[0]) : goPending('1', hit[0]); }
+        close(); return listenMember(v, true);
+      }
+      try {
+        const fam = await fs.doc('members/' + v).get();
+        if (fam.exists) { close(); return listenMember(v, true); }
+        const u = await ensureAnon();
+        const pi = await fs.doc('pinIndex/' + v).get();
+        if (!pi.exists) { reset(); return err('الرقم غير صحيح'); }
+        const mid = pi.data().memberId;
+        await fs.doc('bindings/' + u).set({memberId: mid, pin: v});
+        const a = await fs.doc('accounts/' + mid).get();
+        close(); toast('أهلًا بك 🌿');
+        return a.data().status === 'approved' ? enterMember(null, mid) : goPending(null, mid);
+      } catch (e) { reset(); err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
     };
-    $('#ok', b).onclick = go; $('#c', b).onkeydown = e => { if (e.key === 'Enter') go(); };
+    btn.onclick = go; $('#c', b).onkeydown = e => { if (e.key === 'Enter') go(); };
     setTimeout(() => $('#c', b).focus(), 300);
   });
 }
@@ -2007,7 +2036,9 @@ let BOOT_ERR = '';
 window.addEventListener('error', e => { BOOT_ERR = BOOT_ERR || (e.message || ''); });
 function startViewer() {
   let code = null; try { code = localStorage.getItem(LS_CODE); } catch (e) {}
-  if (code) listenMember(code); else listenGuest();
+  if (code) listenMember(code);
+  else if (lsGet(LS_BIND) && !DEMO) { listenGuest(); resolveSaved(); }
+  else listenGuest();
 }
 function boot() {
   if (!HP) { $('#app').innerHTML = '<div class="wrap"><div class="banner bad">المتصفح قديم ولا يدعم التاريخ الهجري. حدّث المتصفح.</div></div>'; return; }
