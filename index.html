@@ -255,6 +255,20 @@ textarea.inp{resize:vertical;line-height:1.8}
 .calc-res .big{font-family:'Cairo';font-weight:900;font-size:28px;color:var(--goldL)}
 .cmp{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-top:6px;background:#fff}
 .cmp.best{border-color:var(--gold);background:#FFF8E2}
+.ob{max-width:460px;margin:0 auto}
+.ob .card{padding:20px}
+.ob h2{font-family:'Cairo';font-weight:900;margin:0 0 6px;color:var(--green)}
+.namebtn{display:flex;align-items:center;gap:10px;width:100%;text-align:right;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:15px;font-weight:700;color:var(--ink)}
+.namebtn:active{background:var(--bg2)}
+.tabs2{display:flex;background:var(--bg2);border-radius:12px;padding:4px;margin-bottom:12px}
+.tabs2 button{flex:1;border:none;background:none;padding:9px;border-radius:9px;font-family:'Cairo';font-weight:800;font-size:13px;color:var(--ink2)}
+.tabs2 button.on{background:var(--card);color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.wait-ic{font-size:54px;text-align:center;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.08);opacity:.75}}
+.acc{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.acc .n{flex:1;font-size:13.5px;font-weight:600}
+.acc .n small{display:block;font-weight:400;color:var(--ink3);font-size:11px}
+.acc .btn{padding:6px 10px;font-size:12px;flex:0 0 auto}
 .demo-bar{position:fixed;top:8px;left:8px;z-index:70;display:flex;gap:4px;background:#000a;padding:4px;border-radius:20px}
 .demo-bar button{border:none;border-radius:16px;padding:4px 10px;font-size:11px;background:#fff3;color:#fff}
 .demo-bar button.on{background:var(--goldL);color:#000}
@@ -386,6 +400,7 @@ let SANDBOX = false;
 let SUGG = [], PINS = {}, sugUnsub = null, sugCode = null;
 const LS_BIND = 'mubasher_bind_v1';
 const LS_SEEN = 'mubasher_seen_v1';
+let ME = null, OB = null, ROSTER = null, ACCTS = {};
 let PREV_SEEN = undefined, NEWS_HIDE = false, CHART_RANGE = 'all', CMP = [];
 let VOTES = {}, BALLOTS = {}, POLL_UNSUBS = {}, SUGG_A = [], SUGG_B = [], sugUnsub2 = null;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -621,15 +636,111 @@ function listenGuest() {
 }
 function listenMember(code, fromInput) {
   stopListeners(); setSync('wait');
-  if (DEMO) { MODE = 'member'; render(); return Promise.resolve(true); }
-  return new Promise(res => {
-    const u = fs.doc('members/' + code).onSnapshot(s => {
-      if (!s.exists) { try { localStorage.removeItem(LS_CODE); } catch (e) {} if (fromInput) res(false); else { toast('تغيّر رمز الدخول، اطلب الرمز الجديد', true); listenGuest(); } return; }
-      try { localStorage.setItem(LS_CODE, code); } catch (e) {}
-      DB = s.data().db; MODE = 'member'; setSync('on'); markSeen(); listenSugg(code); syncPolls(); render(); res(true);
-    }, err => { setSync('off'); res(false); });
-    unsubs.push(u);
-  });
+  if (DEMO) { lsSet(LS_CODE, code || '1'); ROSTER = {}; DB.members.forEach(m => ROSTER[m.id] = m.name); OB = {step: 'welcome', code: code || '1'}; MODE = 'onboard'; render(); return Promise.resolve(true); }
+  return (async () => {
+    let snap;
+    try { snap = await fs.doc('members/' + code).get(); } catch (e) { setSync('off'); return false; }
+    if (!snap.exists) { lsSet(LS_CODE, null); if (!fromInput) { toast('تغيّر رمز الدخول، اطلب الرمز الجديد', true); listenGuest(); } return false; }
+    lsSet(LS_CODE, code); setSync('on');
+    const r = snap.data();
+    if (!r.roster && r.db) { DB = r.db; MODE = 'member'; markSeen(); render(); return true; }
+    ROSTER = r.roster || {};
+    await resolveMember(code);
+    return true;
+  })();
+}
+async function resolveMember(code) {
+  try {
+    const u = await ensureAnon();
+    const bs = await fs.doc('bindings/' + u).get();
+    if (bs.exists) {
+      const mid = bs.data().memberId;
+      try {
+        const a = await fs.doc('accounts/' + mid).get();
+        if (a.exists) { if (a.data().status === 'approved') return enterMember(code, mid); return goPending(code, mid); }
+      } catch (e) {}
+      try { await fs.doc('bindings/' + u).delete(); } catch (e) {}
+    }
+  } catch (e) { toast(sugErr(e), true); }
+  OB = {step: 'welcome', code}; MODE = 'onboard'; render();
+}
+function goPending(code, mid) {
+  stopListeners(); OB = {step: 'pending', code, mid}; MODE = 'onboard'; render();
+  if (DEMO) return;
+  unsubs.push(fs.doc('accounts/' + mid).onSnapshot(d => {
+    if (d.exists && d.data().status === 'approved') { toast('تم توثيق حسابك ✓ أهلًا بك 🌿'); enterMember(code, mid); }
+    else if (!d.exists) { lsSet(LS_BIND, null); OB = {step: 'welcome', code}; render(); toast('لم يُوثَّق الطلب — تواصل مع المشرف العام', true); }
+  }, () => { lsSet(LS_BIND, null); OB = {step: 'welcome', code}; render(); }));
+}
+function enterMember(code, mid) {
+  stopListeners(); ME = mid; lsSet(LS_BIND, mid); OB = null;
+  if (DEMO) { MODE = 'member'; markSeen(); render(); return; }
+  unsubs.push(fs.doc('family/main').onSnapshot(d => {
+    if (!d.exists) { MODE = 'onboard'; OB = {step: 'upgrading', code}; render(); return; }
+    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); listenSugg(code); syncPolls(); render();
+  }, err => { stopListeners(); ME = null; lsSet(LS_BIND, null); toast('حسابك يحتاج توثيق من جديد', true); OB = {step: 'welcome', code}; MODE = 'onboard'; render(); }));
+}
+async function memberLogout() {
+  try { if (!DEMO && auth && auth.currentUser && auth.currentUser.isAnonymous) await fs.doc('bindings/' + auth.currentUser.uid).delete(); } catch (e) {}
+  lsSet(LS_CODE, null); lsSet(LS_BIND, null); ME = null; OB = null; DB = DEMO ? DB : null; TAB = 'home'; listenGuest();
+}
+function onboardView() {
+  const hero = `<header class="hero" style="padding-bottom:22px"><div class="wrap"><div class="kicker">FAMILY TREASURY · السجل المالي</div><h1 class="title">صندوق آل مبشر بن عبدالله</h1></div></header>`;
+  const st = OB ? OB.step : 'welcome';
+  let b = '';
+  if (st === 'welcome') b = `<div class="card" style="text-align:center"><div style="font-size:46px">🌿</div><h2>أهلًا وسهلًا بك</h2>
+    <p style="line-height:2">في صندوق <b>آل مبشر بن عبدالله</b><br>صندوق العائلة للتكافل والاستثمار.<br>لنجهّز حسابك الشخصي في خطوة واحدة.</p>
+    <button class="btn gold block" id="obPick">اختر اسمك ←</button></div>`;
+  else if (st === 'pick') b = `<div class="card"><h2>الرجاء اختر اسمك</h2><div class="small muted" style="margin-bottom:12px">اضغط على اسمك من القائمة</div>
+    ${Object.entries(ROSTER || {}).sort((a, c) => a[1].localeCompare(c[1], 'ar')).map(([id, n]) => `<button class="namebtn" data-obm="${id}"><span class="av">${esc(n.slice(0, 1))}</span>${esc(n)}</button>`).join('')}</div>`;
+  else if (st === 'pin') {
+    const n = (ROSTER || {})[OB.mid] || '', isNew = OB.mode !== 'login';
+    b = `<div class="card"><div style="text-align:center"><span class="av" style="width:56px;height:56px;font-size:24px;margin:0 auto">${esc(n.slice(0, 1))}</span><h2 style="margin-top:8px">${esc(n)}</h2></div>
+    <div class="tabs2"><button data-obt="new" class="${isNew ? 'on' : ''}">أول مرة أدخل</button><button data-obt="login" class="${isNew ? '' : 'on'}">عندي رقم سري</button></div>
+    <div class="f"><label>${isNew ? 'اختر رقمًا سريًا من ٨ أرقام' : 'اكتب رقمك السري (٨ أرقام)'}</label><input class="inp code-inp" id="obp" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"></div>
+    ${isNew ? `<div class="f"><label>أعد كتابة الرقم للتأكيد</label><input class="inp code-inp" id="obp2" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••"></div><div class="small muted" style="margin-bottom:10px">اختر رقمًا تحفظه، مثل تاريخ ميلادك. لا تعطيه لأحد.</div>` : ''}
+    <div id="obErr" class="small" style="color:var(--bad);min-height:22px;text-align:center"></div>
+    <button class="btn gold block" id="obGo">${isNew ? 'إرسال للتوثيق' : 'دخول'}</button></div>`;
+  } else if (st === 'pending') {
+    const n = (ROSTER || {})[OB.mid] || '';
+    b = `<div class="card" style="text-align:center"><div class="wait-ic">⏳</div><h2>جاري توثيق حسابك</h2><p style="line-height:2">من المشرف العام للصندوق<br><b>${esc(n)}</b></p>
+    <div class="banner" style="text-align:right">أول ما يتم التوثيق تنفتح لك الصفحة تلقائيًا. تقدر تقفل الصفحة وترجع لها لاحقًا.</div></div>`;
+  } else if (st === 'upgrading') b = `<div class="card" style="text-align:center"><div class="wait-ic">🔧</div><h2>الصندوق يتحدّث</h2><p>جاري تحديث الصفحة من المشرف العام، حاول بعد قليل.</p></div>`;
+  return hero + `<div class="wrap ob"><div class="sec">${b}</div>${st === 'pick' || st === 'pin' ? '<button class="admin-link" id="obBack">رجوع</button>' : ''}<button class="admin-link" id="obOut">خروج</button></div>`;
+}
+function wireOnboard() {
+  const on = (id, f) => { const e = $('#' + id); if (e) e.onclick = f; };
+  on('obPick', () => { OB.step = 'pick'; render(); });
+  on('obOut', memberLogout);
+  on('obBack', () => { OB.step = OB.step === 'pin' ? 'pick' : 'welcome'; render(); });
+  $$('[data-obm]').forEach(x => x.onclick = () => { OB.mid = x.dataset.obm; OB.mode = 'new'; OB.step = 'pin'; render(); });
+  $$('[data-obt]').forEach(x => x.onclick = () => { OB.mode = x.dataset.obt; render(); });
+  const go = $('#obGo'); if (!go) return;
+  const err = t => $('#obErr').textContent = t;
+  go.onclick = async () => {
+    const pin = $('#obp').value.trim(), isNew = OB.mode !== 'login', mid = OB.mid, code = OB.code;
+    if (!/^\d{8}$/.test(pin)) return err('الرقم لازم يكون ٨ أرقام');
+    if (isNew && $('#obp2').value.trim() !== pin) return err('الرقمان غير متطابقين');
+    go.disabled = true; err('');
+    if (DEMO) {
+      if (isNew) { if (ACCTS[mid]) { go.disabled = false; return err('هذا الاسم مسجّل مسبقًا — اختر "عندي رقم سري" أو تواصل مع المشرف العام'); } ACCTS[mid] = {pin, status: 'pending', at: Date.now()}; return goPending(code, mid); }
+      const a = ACCTS[mid]; if (!a || a.pin !== pin) { go.disabled = false; return err('الرقم غير صحيح'); }
+      return a.status === 'approved' ? enterMember(code, mid) : goPending(code, mid);
+    }
+    try {
+      const u = await ensureAnon();
+      if (isNew) {
+        try { await fs.doc('accounts/' + mid).set({pin, status: 'pending', uid: u, at: Date.now(), code}); }
+        catch (e) { go.disabled = false; return err(/permission/.test(e.code || e.message) ? 'هذا الاسم مسجّل مسبقًا — اختر "عندي رقم سري" أو تواصل مع المشرف العام' : sugErr(e)); }
+      }
+      try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); }
+      catch (e) { go.disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
+      lsSet(LS_BIND, mid);
+      if (isNew) return goPending(code, mid);
+      const a = await fs.doc('accounts/' + mid).get();
+      return a.data().status === 'approved' ? enterMember(code, mid) : goPending(code, mid);
+    } catch (e) { go.disabled = false; err(sugErr(e)); }
+  };
 }
 function listenAdmin() {
   stopListeners(); setSync('wait');
@@ -637,8 +748,9 @@ function listenAdmin() {
     setSync('on');
     if (!s.exists) { DB = null; MODE = 'setup'; render(); return; }
     DB = s.data(); MODE = 'admin'; markSeen(); listenSugg(DB.settings.familyCode); syncPolls(); render();
+    if ((DB.schema || 0) < 3) { DB.schema = 3; persist('ترقية الصندوق', 'تفعيل الحسابات الشخصية').then(() => toast('تم تحديث الصندوق للحسابات الشخصية ✓')).catch(e => toast('تعذّر التحديث: ' + e.message, true)); }
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
-  unsubs.push(fs.collection('pins').onSnapshot(s => { PINS = {}; s.docs.forEach(d => PINS[d.id] = d.data().pin); }, () => {}));
+  unsubs.push(fs.collection('accounts').onSnapshot(s => { ACCTS = {}; s.docs.forEach(d => ACCTS[d.id] = d.data()); softRender(); }, () => {}));
   unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
 }
 
@@ -650,7 +762,9 @@ async function persist(action, detail, extra) {
   const b = fs.batch();
   b.set(fs.doc('fund/main'), data);
   b.set(fs.doc('public/summary'), buildPublic(data));
-  b.set(fs.doc('members/' + data.settings.familyCode), {db: familyView(data), updatedAt: data.updatedAt});
+  const roster = {}; data.members.filter(m => m.active !== false).forEach(m => roster[m.id] = m.name);
+  b.set(fs.doc('members/' + data.settings.familyCode), {roster, updatedAt: data.updatedAt});
+  b.set(fs.doc('family/main'), {db: familyView(data), updatedAt: data.updatedAt});
   if (extra && extra.deleteCode) b.delete(fs.doc('members/' + extra.deleteCode));
   if (extra && extra.writes) extra.writes.forEach(([path, data, merge]) => data === null ? b.delete(fs.doc(path)) : b.set(fs.doc(path), data, merge ? {merge: true} : {}));
   b.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action, detail: detail || ''})}, {merge: true});
@@ -725,6 +839,7 @@ function render() {
   const y = window.scrollY;
   if (MODE === 'loading') return;
   if (MODE === 'setup') { app.innerHTML = setupView(); wireSetup(); return; }
+  if (MODE === 'onboard') { app.innerHTML = onboardView(); wireOnboard(); demoBar(); window.scrollTo(0, 0); return; }
   if (MODE === 'guest') { app.innerHTML = heroHTML(PUB, 'ضيف') + `<div class="wrap">${guestBody()}</div>`; wireGuest(); wireCharts(); demoBar(); return; }
   const c = compute(DB);
   const S = buildPublic(DB);
@@ -816,6 +931,12 @@ function homeBody(S, c) {
   const openP = (DB.periods || []).find(p => p.status === 'open' && todayISO() >= p.start && todayISO() <= p.end);
   const due = DB.investments.filter(i => i.status === 'active' && maturity(i) && todayISO() >= maturity(i));
   let h = newsBanner();
+  if (MODE === 'admin') {
+    const pend = Object.values(ACCTS).filter(a => a.status === 'pending').length;
+    if (pend) h += `<button class="card cardbtn" style="margin-top:14px;border-color:var(--gold)" data-menu="accounts"><span style="font-size:22px">🪪</span><div style="flex:1"><b>${arD(pend)} ${pend === 1 ? 'طلب توثيق' : 'طلبات توثيق'} بانتظارك</b><div class="small muted">أعضاء اختاروا أسماءهم وينتظرون موافقتك</div></div><span class="muted">‹</span></button>`;
+    const late = lateList(c);
+    if (late.length) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-menu="late"><span style="font-size:22px">⚠️</span><div style="flex:1"><b>${arD(late.length)} ${late.length === 1 ? 'عضو متأخر' : 'أعضاء متأخرين'}</b><div class="small muted">أكثر من ٦ أشهر بدون إيداع ولم يكملوا المستهدف</div></div><span class="muted">‹</span></button>`;
+  }
   if (MODE === 'admin' && due.length) h += `<div class="banner">⏳ ${due.map(i => esc(i.title)).join('، ')} — حان الاستحقاق. افتح الاستثمارات وأقفله بالربح الفعلي.</div>`;
   h += `<div class="grid2 sec" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi"><div class="v num">${arD(ms.length)}</div><div class="l">عدد الأفراد</div></div>
@@ -1012,7 +1133,7 @@ async function ensureAnon() {
 function sugErr(e) {
   const c = (e && (e.code || '')) + ' ' + (e && e.message || '');
   if (/admin-restricted|operation-not-allowed/.test(c)) return 'ميزة المقترحات لم تُفعَّل بعد من أمين الصندوق';
-  if (/permission/.test(c)) return 'غير مسموح — تأكد من رقمك';
+  if (/permission/.test(c)) return 'غير مسموح — تأكد أن حسابك موثّق';
   return 'تعذّر: ' + (e && e.message || e);
 }
 function formSuggestion() {
@@ -1026,47 +1147,27 @@ function formSuggestion() {
       };
     });
   }
-  const bound = lsGet(LS_BIND);
+  if (!ME) return toast('سجّل دخولك بحسابك أولًا', true);
   sheet('مقترح أو رأي', `<div class="f"><label>اكتب مقترحك أو رأيك</label><textarea class="inp" id="t" rows="5" maxlength="1000" placeholder="مثال: أقترح نخصص جزء من الأرباح لـ…"></textarea></div>
   <div class="f"><label>كيف ينشر؟</label>
-   <label class="part"><input type="radio" name="who" value="named" checked><span class="n">باسمي</span></label>
+   <label class="part"><input type="radio" name="who" value="named" checked><span class="n">باسمي<small>${esc(memName(DB, ME))}</small></span></label>
    <label class="part"><input type="radio" name="who" value="anon"><span class="n">بدون اسم<small>لا يظهر اسمك لأحد</small></span></label></div>
-  <div id="namedBox"><div class="f"><label>اسمك</label><select class="inp" id="m"><option value="">— اختر اسمك —</option>${memberOptions(DB, bound)}</select></div>
-   <div class="f" id="pinBox"><label>رقمك السري (٤ أرقام)</label><input class="inp code-inp" id="p" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" style="font-size:22px;letter-spacing:6px"><div class="small muted">يرسله لك أمين الصندوق في الخاص. تكتبه مرة واحدة فقط.</div></div></div>
+  <div class="small muted" style="margin-bottom:8px">يظهر للجميع بعد موافقة أمين الصندوق.</div>
   <div id="err" class="small" style="color:var(--bad);min-height:20px"></div>
-  <button class="btn gold block" id="ok">نشر</button>`, (b, close) => {
-    let forcePin = false;
-    const upd = () => {
-      const anon = $('input[name=who]:checked', b).value === 'anon';
-      $('#namedBox', b).classList.toggle('hidden', anon);
-      $('#pinBox', b).classList.toggle('hidden', !forcePin && !!bound && $('#m', b).value === bound);
-    };
-    $$('input[name=who]', b).forEach(r => r.onchange = upd); $('#m', b).onchange = upd; upd();
+  <button class="btn gold block" id="ok">إرسال</button>`, (b, close) => {
     const err = t => $('#err', b).textContent = t;
     $('#ok', b).onclick = async () => {
       const text = $('#t', b).value.trim(); if (!text) return err('اكتب المقترح');
-      const anon = $('input[name=who]:checked', b).value === 'anon', mid = $('#m', b).value;
-      if (!anon && !mid) return err('اختر اسمك');
-      const needPin = !anon && (forcePin || lsGet(LS_BIND) !== mid);
-      const pin = $('#p', b).value.trim();
-      if (needPin && !/^\d{4}$/.test(pin)) return err('اكتب رقمك السري (٤ أرقام)');
-      const doc = {text, anon, memberId: anon ? null : mid, status: 'pending', likes: {}, at: Date.now()};
+      const anon = $('input[name=who]:checked', b).value === 'anon';
+      const doc = {text, anon, memberId: anon ? null : ME, status: 'pending', likes: {}, at: Date.now()};
       $('#ok', b).disabled = true; err('');
-      if (DEMO || SANDBOX) { if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); } if (!anon) lsSet(LS_BIND, mid); SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('وصل ✓ بانتظار الموافقة'); return; }
+      if (DEMO || SANDBOX) { SUGG.unshift(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('وصل ✓ بانتظار الموافقة'); return; }
       try {
-        const u = await ensureAnon(); doc.uid = u;
-        if (needPin) {
-          try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); lsSet(LS_BIND, mid); }
-          catch (e) { $('#ok', b).disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
-        }
+        doc.uid = auth.currentUser.uid;
         await fs.collection(`members/${sugCode}/suggestions`).add(doc);
         if (!sugUnsub2) listenSugg(sugCode, true);
         close(); toast('وصل ✓ بيظهر للجميع بعد موافقة أمين الصندوق');
-      } catch (e) {
-        $('#ok', b).disabled = false;
-        if (!anon && /permission/.test(e.code || e.message)) { lsSet(LS_BIND, null); forcePin = true; upd(); return err('رقمك تغيّر — اكتب الرقم الجديد'); }
-        err(sugErr(e));
-      }
+      } catch (e) { $('#ok', b).disabled = false; err(sugErr(e)); }
     };
   });
 }
@@ -1271,7 +1372,7 @@ function receiptView(eid, offer) {
 
 /* ---- calculator ---- */
 function calcSheet() {
-  const c = compute(DB), bound = lsGet(LS_BIND);
+  const c = compute(DB), bound = ME;
   const defAmt = MODE === 'admin' ? (c.cash > 0 ? c.cash : '') : (bound && c.M[bound] ? c.M[bound].balance : '');
   sheet('💹 حاسبة الأرباح', `<div class="f"><label>المبلغ (ر.س)</label><input class="inp" id="ca" type="number" inputmode="decimal" value="${defAmt ? r2(defAmt) : ''}" placeholder="مثال: 10000"><div class="small muted">${MODE === 'admin' ? 'معبّأ بالنقد المتاح — غيّره كما تريد' : bound ? 'معبّأ برصيدك — غيّره كما تريد' : ''}</div></div>
   <div class="grid2"><div class="f"><label>النسبة السنوية %</label><input class="inp" id="cr" type="number" step="0.01" inputmode="decimal" placeholder="5.5"></div><div class="f"><label>المدة (أشهر)</label><input class="inp" id="cm" type="number" inputmode="numeric" placeholder="6"></div></div>
@@ -1314,15 +1415,16 @@ function pollTally(pl) {
 }
 function pollCard(pl) {
   const open = pollOpen(pl), T = pollTally(pl), ball = BALLOTS[pl.id] || {}, showNames = MODE === 'admin' || pl.mode === 'public';
-  const elig = pl.eligible || [], bound = lsGet(LS_BIND), myVote = lsGet('mubasher_vote_' + pl.id) ?? (bound && ball[bound] !== undefined ? String(ball[bound]) : null);
-  const canVote = open && (MODE !== 'admin' || true) && myVote === null;
+  const elig = pl.eligible || [], myVote = ME && ball[ME] !== undefined ? String(ball[ME]) : (ME ? lsGet('mubasher_vote_' + pl.id + '_' + ME) : null);
+  const canVote = open && MODE === 'member' && !!ME && elig.includes(ME) && myVote === null;
   const maxC = Math.max(0, ...pl.opts.map((_, i) => T.counts[i] || 0));
   const notVoted = showNames ? elig.filter(id => ball[id] === undefined) : [];
   return `<div class="card poll" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><b style="font-family:Cairo;flex:1">${esc(pl.q)}</b><span class="pill ${open ? 'blue' : 'gray'}">${open ? 'مفتوح' : 'مغلق'}</span></div>
   <div class="small muted" style="margin-top:2px">${pl.mode === 'public' ? '🔓 علني' : '🔒 سرّي بين الأعضاء'} · ${open ? 'يُغلق ' + fmtH(pl.closeDate) : 'أُغلق'} · صوّت ${arD(T.total)} من ${arD(elig.length)}</div>
   ${pl.opts.map((o, i) => { const n = T.counts[i] || 0, pc = T.total ? Math.round(n / T.total * 100) : 0, names = showNames ? Object.entries(ball).filter(([, v]) => v === i).map(([k]) => memName(DB, k)) : [];
     return `<button class="opt ${!open && n === maxC && n > 0 ? 'win' : ''} ${myVote === String(i) ? 'mine' : ''}" ${canVote ? `data-vote="${pl.id}|${i}"` : 'disabled'}><div class="fill" data-w="${pc}"></div><span><span>${myVote === String(i) ? '✓ ' : ''}${esc(o)}</span><b class="num" style="white-space:nowrap">${arD(pc)}٪ <small style="font-weight:600;color:var(--ink2)">(${arD(n)})</small></b></span>${names.length ? `<div class="names">${names.map(esc).join('، ')}</div>` : ''}</button>`; }).join('')}
-  ${canVote ? '<div class="small muted" style="margin-top:8px">اضغط على خيارك للتصويت — مرة واحدة فقط' + (elig.length < DB.members.length ? '، وللأعضاء المحددين' : '') + '</div>' : ''}
+  ${canVote ? '<div class="small muted" style="margin-top:8px">اضغط على خيارك للتصويت — مرة واحدة فقط</div>' : ''}
+  ${open && MODE === 'member' && ME && !elig.includes(ME) ? '<div class="small muted" style="margin-top:8px">هذا التصويت لأعضاء محددين</div>' : ''}
   ${myVote !== null && open ? '<div class="small" style="color:var(--good);margin-top:8px">✓ تم تسجيل صوتك</div>' : ''}
   ${notVoted.length && open ? `<div class="small muted" style="margin-top:8px">لم يصوّت بعد: ${notVoted.map(id => esc(memName(DB, id))).join('، ')}</div>` : ''}
   ${!showNames ? '' : ''}
@@ -1364,39 +1466,28 @@ function formPoll(pre) {
   });
 }
 function voteSheet(pid, opt) {
-  const pl = (DB.polls || []).find(x => x.id === pid); if (!pl) return;
-  const bound = lsGet(LS_BIND), elig = DB.members.filter(m => (pl.eligible || []).includes(m.id));
-  sheet('تأكيد التصويت', `<div class="card" style="text-align:center"><div class="small muted">${esc(pl.q)}</div><div style="font-family:Cairo;font-weight:900;font-size:20px;margin-top:4px">${esc(pl.opts[opt])}</div></div>
-  <div class="f" style="margin-top:12px"><label>اسمك</label><select class="inp" id="m"><option value="">— اختر اسمك —</option>${elig.map(m => `<option value="${m.id}" ${m.id === bound ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>
-  <div class="f" id="pinBox"><label>رقمك السري (٤ أرقام)</label><input class="inp code-inp" id="p" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" style="font-size:22px;letter-spacing:6px"></div>
-  <div class="small muted" style="margin-bottom:8px">${pl.mode === 'public' ? '🔓 تصويت علني: سيظهر اسمك مع اختيارك' : '🔒 سرّي بين الأعضاء: لن يرى الأعضاء اختيارك'} · لا يمكن تغيير الصوت بعد التأكيد</div>
+  const pl = (DB.polls || []).find(x => x.id === pid); if (!pl || !ME) return;
+  sheet('تأكيد التصويت', `<div class="card" style="text-align:center"><div class="small muted">${esc(pl.q)}</div><div style="font-family:Cairo;font-weight:900;font-size:20px;margin-top:4px">${esc(pl.opts[opt])}</div><div class="small muted" style="margin-top:6px">باسم: ${esc(memName(DB, ME))}</div></div>
+  <div class="small muted" style="margin:10px 0">${pl.mode === 'public' ? '🔓 تصويت علني: سيظهر اسمك مع اختيارك' : '🔒 سرّي بين الأعضاء: لن يرى الأعضاء اختيارك'} · لا يمكن تغيير الصوت بعد التأكيد</div>
   <div id="err" class="small" style="color:var(--bad);min-height:20px"></div>
   <button class="btn gold block" id="ok">تأكيد صوتي</button>`, (b, close) => {
-    let forcePin = false;
-    const upd = () => $('#pinBox', b).classList.toggle('hidden', !forcePin && !!bound && $('#m', b).value === bound);
-    $('#m', b).onchange = upd; upd();
-    const err = t => $('#err', b).textContent = t;
+    const err = t => $('#err', b).textContent = t, mid = ME;
     $('#ok', b).onclick = async () => {
-      const mid = $('#m', b).value; if (!mid) return err('اختر اسمك');
-      const needPin = forcePin || lsGet(LS_BIND) !== mid, pin = $('#p', b).value.trim();
-      if (needPin && !/^\d{4}$/.test(pin)) return err('اكتب رقمك السري');
       $('#ok', b).disabled = true; err('');
       if (DEMO || SANDBOX) {
-        if (needPin && PINS[mid] !== pin) { $('#ok', b).disabled = false; return err('الرقم غير صحيح'); }
-        BALLOTS[pid] = BALLOTS[pid] || {}; if (BALLOTS[pid][mid] !== undefined) { $('#ok', b).disabled = false; return err('سبق أن صوّت هذا العضو'); }
-        BALLOTS[pid][mid] = opt; lsSet(LS_BIND, mid); lsSet('mubasher_vote_' + pid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓'); return;
+        BALLOTS[pid] = BALLOTS[pid] || {}; if (BALLOTS[pid][mid] !== undefined) { $('#ok', b).disabled = false; return err('سبق أن صوّتّ'); }
+        BALLOTS[pid][mid] = opt; lsSet('mubasher_vote_' + pid + '_' + mid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓'); return;
       }
       try {
-        const u = await ensureAnon();
-        if (needPin) { try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); lsSet(LS_BIND, mid); } catch (e) { $('#ok', b).disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); } }
+        const u = auth.currentUser.uid;
         const bt = fs.batch(), inc = firebase.firestore.FieldValue.increment(1);
         bt.set(fs.doc(`votes/${pid}/ballots/${mid}`), {opt, uid: u, at: Date.now()});
         bt.update(fs.doc('votes/' + pid), {total: inc, ['counts.' + opt]: inc});
         await bt.commit();
-        lsSet('mubasher_vote_' + pid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓');
+        lsSet('mubasher_vote_' + pid + '_' + mid, String(opt)); close(); render(); toast('تم تسجيل صوتك ✓');
       } catch (e) {
         $('#ok', b).disabled = false;
-        if (/permission/.test(e.code || e.message)) { if (!needPin) { forcePin = true; upd(); } return err('تعذّر: ربما سبق أن صوّت هذا العضو، أو انتهى التصويت، أو رقمك تغيّر'); }
+        if (/permission/.test(e.code || e.message)) return err('تعذّر: ربما سبق أن صوّتّ، أو انتهى التصويت');
         err(sugErr(e));
       }
     };
@@ -1428,6 +1519,54 @@ function sugReject(id) {
   });
 }
 
+/* ---- accounts (admin) ---- */
+async function acctAction(mid, approve) {
+  const n = memName(DB, mid);
+  if (DEMO || SANDBOX) { if (approve) ACCTS[mid].status = 'approved'; else delete ACCTS[mid]; toast('تم ✓'); return; }
+  try {
+    const bt = fs.batch();
+    if (approve) bt.update(fs.doc('accounts/' + mid), {status: 'approved', approvedAt: Date.now()}); else bt.delete(fs.doc('accounts/' + mid));
+    bt.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action: 'حسابات', detail: (approve ? 'توثيق حساب: ' : 'إلغاء/إعادة تعيين حساب: ') + n})}, {merge: true});
+    await bt.commit(); toast(approve ? 'تم توثيق ' + n + ' ✓' : 'تم ✓');
+  } catch (e) { toast('تعذّر: ' + e.message, true); }
+}
+function formAccounts() {
+  const ms = DB.members.filter(m => m.active !== false);
+  const order = m => ({pending: 0, undefined: 1, approved: 2})[ACCTS[m.id] && ACCTS[m.id].status];
+  const rows = ms.slice().sort((a, b) => order(a) - order(b)).map(m => {
+    const a = ACCTS[m.id];
+    if (a && a.status === 'pending') return `<div class="acc"><span class="n">${esc(m.name)}<small>⏳ طلب توثيق · ${fmtH(isoOf(a.at))}</small></span><button class="btn" data-aok="${m.id}">✅ توثيق</button><button class="btn ghost" data-ano="${m.id}">✕</button></div>`;
+    if (a && a.status === 'approved') return `<div class="acc"><span class="n">${esc(m.name)}<small style="color:var(--good)">✓ موثّق${a.approvedAt ? ' · ' + fmtH(isoOf(a.approvedAt)) : ''}</small></span><button class="btn ghost" data-ares="${m.id}">↻ إعادة تعيين</button></div>`;
+    return `<div class="acc"><span class="n">${esc(m.name)}<small>لم يفعّل حسابه بعد</small></span></div>`;
+  }).join('');
+  sheet('🪪 حسابات الأعضاء', `<p class="small muted" style="margin-top:0">كل عضو يدخل بالرمز الموحد، ثم يختار اسمه ورقمًا سريًا من ٨ أرقام، ويظهر هنا لتوثّقه. وثّق فقط من تأكدت أنه صاحب الاسم.</p>
+  ${rows}<button class="btn gold block" style="margin-top:14px" id="inv">💬 إرسال طريقة الدخول للقروب</button>`, (b, close) => {
+    $$('[data-aok]', b).forEach(x => x.onclick = async () => { await acctAction(x.dataset.aok, true); close(); formAccounts(); });
+    $$('[data-ano]', b).forEach(x => x.onclick = () => confirmSheet('رفض الطلب', `سيُحذف طلب «${esc(memName(DB, x.dataset.ano))}» ويقدر يسجّل من جديد.`, 'رفض', async () => { await acctAction(x.dataset.ano, false); formAccounts(); }, true));
+    $$('[data-ares]', b).forEach(x => x.onclick = () => confirmSheet('إعادة تعيين', `سيُلغى رقم «${esc(memName(DB, x.dataset.ares))}» ويخرج من كل أجهزته، ويحتاج يختار رقمًا جديدًا وتوثّقه من جديد.`, 'إعادة تعيين', async () => { await acctAction(x.dataset.ares, false); formAccounts(); }, true));
+    $('#inv', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم ورحمة الله 🌿\nصار لكل فرد في صندوق آل مبشر بن عبدالله حساب شخصي:\n\n1️⃣ افتح الرابط: ${SITE_URL}\n2️⃣ اضغط «دخول أفراد العائلة» واكتب الرمز: ${DB.settings.familyCode}\n3️⃣ اختر اسمك، واختر رقمًا سريًا من ٨ أرقام تحفظه (مثل تاريخ ميلادك)\n4️⃣ انتظر توثيقي، وتنفتح لك الصفحة تلقائيًا ✅\n\nجوالك يتذكرك بعدها، فما تحتاج تكتب شي مرة ثانية.`), '_blank');
+  });
+}
+/* ---- late members ---- */
+function lateList(c) {
+  const t = todayISO(), out = [];
+  DB.members.filter(m => m.active !== false).forEach(m => {
+    const x = c.M[m.id]; if (!x || x.contrib >= target(DB, m)) return;
+    const deps = DB.entries.filter(e => isLive(e) && (e.type === 'contribution' || e.type === 'opening') && e.memberId === m.id).map(e => e.date).sort();
+    const last = deps[deps.length - 1]; if (!last || addMonths(last, 6) > t) return;
+    let mo = 0; while (addMonths(last, mo + 1) <= t) mo++;
+    out.push({m, x, last, mo, rem: target(DB, m) - x.contrib});
+  });
+  return out.sort((a, b) => b.mo - a.mo);
+}
+function formLate() {
+  const L = lateList(compute(DB));
+  sheet('⚠️ المتأخرون', `<p class="small muted" style="margin-top:0">أعضاء لم يكملوا المستهدف ومرّ على آخر إيداع لهم أكثر من ٦ أشهر (بدون احتساب الأرباح). هذه الصفحة لك فقط.</p>
+  ${L.length ? L.map(r => `<div class="acc"><span class="n">${esc(r.m.name)}<small>آخر إيداع ${fmtH(r.last)} · منذ ${arD(r.mo)} ${r.mo <= 10 ? 'أشهر' : 'شهرًا'} · المتبقي ${fmt(r.rem)}${SAR}</small></span><button class="btn ghost" data-lwa="${r.m.id}">💬 تذكير</button></div>`).join('') : '<div class="empty">لا يوجد متأخرون 👏</div>'}`, b => {
+    $$('[data-lwa]', b).forEach(x => x.onclick = () => { const r = L.find(y => y.m.id === x.dataset.lwa); remind(r.m, r.x); });
+  });
+}
+
 /* ---- more / admin ---- */
 function moreBody() {
   const periods = (DB.periods || []).slice().sort((a, b) => b.start.localeCompare(a.start));
@@ -1444,7 +1583,8 @@ function moreBody() {
   if (MODE === 'admin') {
     h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>لوحة المدير</h2></div>
     ${menu('sandbox', '🧪', 'وضع التجربة', 'جرّب أي شي بدون ما ينحفظ')}
-    ${menu('pins', '🔢', 'أرقام الأعضاء السرية', 'لكتابة المقترحات بالاسم — ' + arD(Object.keys(PINS).length) + ' من ' + arD(DB.members.filter(m => m.active !== false).length))}
+    ${menu('accounts', '🪪', 'حسابات الأعضاء', 'موثّق ' + arD(Object.values(ACCTS).filter(a => a.status === 'approved').length) + ' · بانتظار ' + arD(Object.values(ACCTS).filter(a => a.status === 'pending').length) + ' من ' + arD(DB.members.filter(m => m.active !== false).length))}
+    ${menu('late', '⚠️', 'المتأخرون', 'أكثر من ٦ أشهر بدون إيداع — ' + arD(lateList(compute(DB)).length))}
     ${menu('code', '🔑', 'رمز دخول العائلة', 'الرمز الحالي: ' + DB.settings.familyCode + ' — غيّره أو أرسله')}
     ${menu('backup', '💾', 'نسخة احتياطية', 'تنزيل كل البيانات في ملف تحفظه عندك')}
     ${menu('excel', '📊', 'تصدير Excel', 'الأفراد والحركات والاستثمارات')}
@@ -1729,11 +1869,12 @@ function statement(m, x, entries) {
 
 /* ---- admin menu ---- */
 function menuAction(k) {
-  if (k === 'mlogout') { try { localStorage.removeItem(LS_CODE); } catch (e) {} DB = null; TAB = 'home'; listenGuest(); return; }
+  if (k === 'mlogout') return memberLogout();
   if (k === 'logout') { if (DEMO) return; auth.signOut(); DB = null; TAB = 'home'; startViewer(); return; }
   if (k === 'sandbox') return confirmSheet('وضع التجربة', 'تقدر تضيف وتستثمر وتقفل وتصحح بحرية — <b>ولا شيء يُحفظ</b> ولا يشوفه أحد. للخروج: زر "خروج" أو أعد تحميل الصفحة وترجع البيانات الحقيقية.', 'ابدأ التجربة', () => { SANDBOX = true; stopListeners(); DB = clone(DB); render(); toast('🧪 دخلت وضع التجربة'); });
   if (k === 'code') return formCode();
-  if (k === 'pins') return formPins();
+  if (k === 'accounts') return formAccounts();
+  if (k === 'late') return formLate();
   if (k === 'backup') { const name = `صندوق-آل-مبشر-نسخة-${todayISO()}.json`; download(name, JSON.stringify({kind: 'mubasher-fund-backup', at: Date.now(), db: DB}, null, 1), 'application/json'); toast('تم تنزيل النسخة ✓'); return; }
   if (k === 'excel') return exportExcel();
   if (k === 'restore') return formRestore();
@@ -1808,7 +1949,6 @@ function formMemberLogin() {
       const code = $('#c', b).value.trim();
       if (!/^\d{8}$/.test(code)) { $('#err', b).textContent = 'الرمز 8 أرقام'; return; }
       $('#ok', b).disabled = true; $('#ok', b).textContent = 'جاري التحقق…';
-      if (DEMO) { close(); MODE = 'member'; render(); return; }
       const ok = await listenMember(code, true);
       if (ok) { close(); toast('أهلًا بك 🌿'); } else { $('#ok', b).disabled = false; $('#ok', b).textContent = 'دخول'; $('#err', b).textContent = 'الرمز غير صحيح'; listenGuest(); }
     };
@@ -1844,7 +1984,7 @@ function demoBar() {
   const d = document.createElement('div'); d.className = 'demo-bar';
   d.innerHTML = ['admin:مدير', 'member:عضو', 'guest:ضيف'].map(x => { const [k, l] = x.split(':'); return `<button data-r="${k}">${l}</button>`; }).join('');
   document.body.appendChild(d);
-  $$('button', d).forEach(b => b.onclick = () => { if (b.dataset.r === 'guest') listenGuest(); else { MODE = b.dataset.r; render(); } });
+  $$('button', d).forEach(b => b.onclick = () => { if (b.dataset.r === 'guest') listenGuest(); else { if (b.dataset.r === 'member' && !ME) ME = DB.members[0].id; MODE = b.dataset.r; render(); } });
 }
 
 /* ================= BOOT ================= */
