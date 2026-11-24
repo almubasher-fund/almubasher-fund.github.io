@@ -713,7 +713,7 @@ function wireOnboard() {
   on('obPick', () => { OB.step = 'pick'; render(); });
   on('obOut', memberLogout);
   on('obBack', () => { OB.step = OB.step === 'pin' ? 'pick' : 'welcome'; render(); });
-  $$('[data-obm]').forEach(x => x.onclick = () => { OB.mid = x.dataset.obm; OB.mode = 'new'; OB.step = 'pin'; render(); });
+  $$('[data-obm]').forEach(x => x.onclick = () => { OB.mid = x.dataset.obm; OB.mode = lsGet('mubasher_reg_' + x.dataset.obm) ? 'login' : 'new'; OB.step = 'pin'; render(); });
   $$('[data-obt]').forEach(x => x.onclick = () => { OB.mode = x.dataset.obt; render(); });
   const go = $('#obGo'); if (!go) return;
   const err = t => $('#obErr').textContent = t;
@@ -730,11 +730,19 @@ function wireOnboard() {
     try {
       const u = await ensureAnon();
       if (isNew) {
-        try { await fs.doc('accounts/' + mid).set({pin, status: 'pending', uid: u, at: Date.now(), code}); }
-        catch (e) { go.disabled = false; return err(/permission/.test(e.code || e.message) ? 'هذا الاسم مسجّل مسبقًا — اختر "عندي رقم سري" أو تواصل مع المشرف العام' : sugErr(e)); }
+        let exists = false;
+        try { await fs.doc('accounts/' + mid).set({pin, status: 'pending', uid: u, at: Date.now(), code}); lsSet('mubasher_reg_' + mid, '1'); }
+        catch (e) { if (!/permission/.test(e.code || e.message)) { go.disabled = false; return err(sugErr(e)); } exists = true; }
+        if (exists) {
+          try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); }
+          catch (e) { go.disabled = false; OB.mode = 'login'; render(); $('#obErr').textContent = 'هذا الاسم له حساب مسبقًا — اكتب رقمك السري هنا. إذا نسيته تواصل مع المشرف العام'; return; }
+          lsSet(LS_BIND, mid);
+          const a = await fs.doc('accounts/' + mid).get();
+          return a.data().status === 'approved' ? enterMember(code, mid) : goPending(code, mid);
+        }
       }
       try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); }
-      catch (e) { go.disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح' : sugErr(e)); }
+      catch (e) { go.disabled = false; return err(/permission/.test(e.code || e.message) ? 'الرقم غير صحيح — تأكد منه، وإذا نسيته اطلب من المشرف العام «إعادة تعيين»' : sugErr(e)); }
       lsSet(LS_BIND, mid);
       if (isNew) return goPending(code, mid);
       const a = await fs.doc('accounts/' + mid).get();
@@ -1125,8 +1133,15 @@ function sugCard(s) {
   ${MODE !== 'admin' && pend ? '<div class="small muted" style="margin-top:8px">يظهر لك أنت فقط حتى يوافق عليه أمين الصندوق</div>' : ''}
   ${!pend && s.approved === false ? `<div class="sug-f"><span class="small" style="color:var(--bad)">غير منشور — يراه صاحبه فقط</span>${MODE === 'admin' ? `<button class="lnk" data-sadm="${s.id}" style="margin-inline-start:auto">إدارة ←</button>` : ''}</div>` : ''}</div>`;
 }
+let AUTH_READY = null;
+function authReady() {
+  if (!auth) return Promise.resolve();
+  if (!AUTH_READY) AUTH_READY = new Promise(res => { const un = auth.onAuthStateChanged(() => { un(); res(); }); setTimeout(res, 6000); });
+  return AUTH_READY;
+}
 async function ensureAnon() {
   if (!auth) throw new Error('تسجيل الدخول غير متاح');
+  await authReady();
   if (!auth.currentUser) await auth.signInAnonymously();
   return auth.currentUser.uid;
 }
