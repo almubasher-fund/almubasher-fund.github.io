@@ -400,7 +400,7 @@ let SANDBOX = false;
 let SUGG = [], PINS = {}, sugUnsub = null, sugCode = null;
 const LS_BIND = 'mubasher_bind_v1';
 const LS_SEEN = 'mubasher_seen_v1';
-let ME = null, OB = null, ROSTER = null, ACCTS = {};
+let ME = null, OB = null, ROSTER = null, ACCTS = {}, WREQ = [], REGS = {}, SEEN_REQ = null;
 let PREV_SEEN = undefined, NEWS_HIDE = false, CHART_RANGE = 'all', CMP = [];
 let VOTES = {}, BALLOTS = {}, POLL_UNSUBS = {}, SUGG_A = [], SUGG_B = [], sugUnsub2 = null;
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -414,7 +414,7 @@ const SITE_URL = 'https://almubasher-fund.github.io';
 
 /* ================= DOMAIN ================= */
 const IN_TYPES = {opening: 1, contribution: 1, maturity: 1};
-const TYPE_LABEL = {opening:'رصيد افتتاحي', contribution:'مساهمة', withdrawal:'سحب لعضو', expense:'مصروف', invest:'استثمار', maturity:'استحقاق استثمار', reversal:'قيد تصحيح'};
+const TYPE_LABEL = {opening:'رصيد افتتاحي', contribution:'مساهمة', withdrawal:'سحب لعضو', expense:'مصروف', invest:'استثمار', maturity:'استحقاق استثمار', reversal:'قيد تصحيح', claim:'مطالبة', settle:'سداد مستحق', pwithdraw:'صرف أرباح'};
 const target = (db, m) => Number(m.target || db.settings.target || 10000);
 const expProfit = iv => (iv.manualProfit !== undefined && iv.manualProfit !== null && iv.manualProfit !== '') ? Number(iv.manualProfit) : iv.principal * (iv.rate / 100) * (iv.months / 12);
 const maturity = iv => iv.start ? addMonths(iv.start, iv.months) : null;
@@ -424,12 +424,14 @@ const isLive = e => !e.reversedBy && e.type !== 'reversal';
 
 function compute(db, upTo) {
   const M = {};
-  db.members.forEach(m => M[m.id] = {contrib: 0, cash: 0, inv: 0, profit: 0, spent: 0, expected: 0, series: []});
+  db.members.forEach(m => M[m.id] = {contrib: 0, cash: 0, inv: 0, profit: 0, spent: 0, expected: 0, pused: 0, owed: 0, series: []});
   let cash = 0, inv = 0, contrib = 0, profit = 0, spent = 0, withdrawn = 0;
   const growth = [];
   const list = db.entries.filter(e => isLive(e) && (!upTo || e.date <= upTo)).sort(byDate);
   for (const e of list) {
-    cash += (IN_TYPES[e.type] ? 1 : -1) * e.amount;
+    cash += e.cashDelta !== undefined ? e.cashDelta : (IN_TYPES[e.type] ? 1 : -1) * e.amount;
+    for (const [k, v] of Object.entries(e.pused || {})) if (M[k]) M[k].pused += v;
+    for (const [k, v] of Object.entries(e.dues || {})) if (M[k]) M[k].owed += v;
     const touched = new Set();
     for (const [k, v] of Object.entries(e.alloc || {})) if (M[k]) { M[k].cash += v; touched.add(k); if (e.type === 'expense') M[k].spent -= v; }
     for (const [k, v] of Object.entries(e.inv || {})) { inv += v; if (M[k]) M[k].inv += v; }
@@ -452,7 +454,7 @@ function compute(db, upTo) {
     const ep = expProfit(iv); expected += ep;
     for (const [k, s] of Object.entries(iv.shares || {})) if (M[k]) M[k].expected += ep * s / iv.principal;
   });
-  Object.values(M).forEach(x => { x.cash = r2(x.cash); x.inv = r2(x.inv); x.balance = r2(x.cash + x.inv); });
+  Object.values(M).forEach(x => { x.cash = r2(x.cash); x.inv = r2(x.inv); x.balance = r2(x.cash + x.inv); x.owed = r2(Math.max(0, x.owed)); x.pavail = r2(Math.max(0, Math.min(x.profit - x.pused, x.cash))); });
   return {M, cash: r2(cash), inv: r2(inv), contrib, profit, spent, withdrawn, expected, assets: r2(cash + inv), total: r2(cash + inv + expected), growth};
 }
 
@@ -537,6 +539,37 @@ const A = {
     iv.status = 'completed'; iv.finalProfit = profit; iv.completedAt = date; iv.maturityEntryId = e.id;
     return `إقفال استثمار ${iv.title} بربح ${fmt(profit)}`;
   },
+  claim(db, {reason, amount, date, mids, note}) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); if (!reason) throw new Error('اكتب سبب المطالبة'); checkDate(db, date);
+    if (!mids.length) throw new Error('اختر الأعضاء');
+    const c = compute(db), share = r2(amount / mids.length), alloc = {}, pused = {}, dues = {};
+    let acc = 0, fromProfit = 0;
+    mids.forEach((k, i) => {
+      const sh = i === mids.length - 1 ? r2(amount - acc) : share; acc = r2(acc + sh);
+      const m = db.members.find(x => x.id === k), x = c.M[k], done = x.contrib >= target(db, m);
+      const fp = done ? r2(Math.min(sh, x.pavail)) : 0;
+      if (fp > 0) { alloc[k] = -fp; pused[k] = fp; fromProfit = r2(fromProfit + fp); }
+      if (sh - fp > 0.001) dues[k] = r2(sh - fp);
+    });
+    pushEntry(db, {date, type: 'claim', amount, cashDelta: -fromProfit, desc: `مطالبة: ${reason}`, note: `بالتساوي على ${mids.length} عضو (${fmt(share)} لكل عضو)` + (fromProfit ? ` — ${fmt(fromProfit)} من أرباح المكتملين` : '') + (note ? ' — ' + note : ''), alloc, pused, dues, share});
+    return `مطالبة ${fmt(amount)}: ${reason}`;
+  },
+  settle(db, mid, amount, date, note) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
+    const c = compute(db); if (amount > c.M[mid].owed + 0.001) throw new Error(`المستحق عليه ${fmt(c.M[mid].owed)} فقط`);
+    const n = memName(db, mid);
+    pushEntry(db, {date, type: 'settle', amount, cashDelta: 0, memberId: mid, desc: `سداد مستحق من ${n}`, note: note || 'سُدّد للمطالبة', dues: {[mid]: -amount}});
+    return `سداد مستحق ${fmt(amount)} من ${n}`;
+  },
+  pwithdraw(db, mid, amount, date, note, reqId) {
+    amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
+    const c = compute(db), x = c.M[mid], m = db.members.find(y => y.id === mid);
+    if (x.contrib < target(db, m)) throw new Error('سحب الأرباح للمكتملين فقط');
+    if (amount > x.pavail + 0.001) throw new Error(`أرباحه المتاحة ${fmt(x.pavail)} فقط`);
+    const n = memName(db, mid);
+    const e = pushEntry(db, {date, type: 'pwithdraw', amount, memberId: mid, desc: `صرف أرباح لـ ${n}`, note: note || 'تم تحويل الأرباح', alloc: {[mid]: -amount}, pused: {[mid]: amount}, reqId: reqId || null});
+    return {detail: `صرف أرباح ${fmt(amount)} لـ ${n}`, id: e.id};
+  },
   reverse(db, entryId, reason) {
     const e = db.entries.find(x => x.id === entryId);
     if (!e || !isLive(e)) throw new Error('القيد غير قابل للتصحيح');
@@ -549,6 +582,9 @@ const A = {
     if (e.type === 'maturity') {
       const iv = db.investments.find(i => i.id === e.invId);
       if (iv) { iv.status = 'active'; delete iv.finalProfit; delete iv.completedAt; delete iv.maturityEntryId; }
+    }
+    if (e.type === 'claim' && db.entries.some(x => x.type === 'settle' && isLive(x) && x.createdAt > e.createdAt && (e.dues || {})[x.memberId])) {
+      const c = compute(db); if (Object.keys(e.dues || {}).some(k => c.M[k].owed + 0.001 < e.dues[k])) throw new Error('فيه سدادات مسجّلة لهذه المطالبة؛ صحّح السدادات أولًا');
     }
     if (e.type === 'contribution' || e.type === 'opening') {
       const c = compute(db); if (c.M[e.memberId] && c.M[e.memberId].cash + 0.001 < e.amount) throw new Error('مبلغ هذه المساهمة داخل استثمار حاليًا؛ لا يمكن عكسه قبل إقفال الاستثمار');
@@ -565,8 +601,9 @@ function avgRate(db) {
   return base > 0 ? r2(d.reduce((s, i) => s + (i.finalProfit || 0), 0) / base * 100) : 0;
 }
 function ensureReceipts(db) {
-  db.receiptSeq = db.receiptSeq || 0;
-  db.entries.filter(e => e.type === 'contribution' && !e.receiptNo).sort(byDate).forEach(e => { db.receiptSeq++; e.receiptNo = g2h(e.date).y + '/' + String(db.receiptSeq).padStart(3, '0'); });
+  db.receiptSeq = db.receiptSeq || 0; db.voucherSeq = db.voucherSeq || 0;
+  db.entries.filter(e => (e.type === 'contribution' || e.type === 'settle') && !e.receiptNo).sort(byDate).forEach(e => { db.receiptSeq++; e.receiptNo = g2h(e.date).y + '/' + String(db.receiptSeq).padStart(3, '0'); });
+  db.entries.filter(e => (e.type === 'withdrawal' || e.type === 'pwithdraw') && !e.receiptNo).sort(byDate).forEach(e => { db.voucherSeq++; e.receiptNo = 'ص-' + g2h(e.date).y + '/' + String(db.voucherSeq).padStart(3, '0'); e.voucher = true; });
 }
 function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); return v; }
 function buildPublic(db) {
@@ -680,17 +717,30 @@ function goPending(code, mid) {
     else if (!d.exists) { lsSet(LS_BIND, null); OB = {step: 'welcome', code}; render(); toast('لم يُوثَّق الطلب — تواصل مع المشرف العام', true); }
   }, () => { lsSet(LS_BIND, null); OB = {step: 'welcome', code}; render(); }));
 }
+let wreqUnsub = null;
+function listenMyReqs() {
+  if (DEMO || wreqUnsub || !ME) return;
+  wreqUnsub = fs.collection('wreq').where('memberId', '==', ME).onSnapshot(q => { WREQ = q.docs.map(d => Object.assign({id: d.id}, d.data())); softRender(); }, () => {});
+  unsubs.push(() => { if (wreqUnsub) wreqUnsub(); wreqUnsub = null; });
+}
 function enterMember(code, mid) {
   stopListeners(); ME = mid; lsSet(LS_BIND, mid); OB = null;
   if (DEMO) { MODE = 'member'; markSeen(); render(); return; }
   unsubs.push(fs.doc('family/main').onSnapshot(d => {
     if (!d.exists) { MODE = 'onboard'; OB = {step: 'upgrading', code}; render(); return; }
-    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); const fc = DB.settings.familyCode || code || lsGet(LS_CODE); if (fc) lsSet(LS_CODE, fc); listenSugg(fc); syncPolls(); render();
+    DB = d.data().db; MODE = 'member'; setSync('on'); markSeen(); listenMyReqs(); const fc = DB.settings.familyCode || code || lsGet(LS_CODE); if (fc) lsSet(LS_CODE, fc); listenSugg(fc); syncPolls(); render();
   }, err => { stopListeners(); ME = null; lsSet(LS_BIND, null); toast('حسابك يحتاج توثيق من جديد', true); OB = {step: 'welcome', code}; MODE = 'onboard'; render(); }));
 }
 async function memberLogout() {
   try { if (!DEMO && auth && auth.currentUser && auth.currentUser.isAnonymous) await fs.doc('bindings/' + auth.currentUser.uid).delete(); } catch (e) {}
   lsSet(LS_CODE, null); lsSet(LS_BIND, null); ME = null; OB = null; DB = DEMO ? DB : null; TAB = 'home'; listenGuest();
+}
+let regsUnsub = null;
+function listenRegs() {
+  if (DEMO) { REGS = {}; Object.entries(ACCTS).forEach(([k, a]) => REGS[k] = a.status); render(); return; }
+  if (regsUnsub) return;
+  regsUnsub = fs.collection('regs').onSnapshot(q => { REGS = {}; q.docs.forEach(d => REGS[d.id] = d.data().status); if (MODE === 'onboard') render(); }, () => {});
+  unsubs.push(() => { if (regsUnsub) regsUnsub(); regsUnsub = null; });
 }
 function onboardView() {
   const hero = `<header class="hero" style="padding-bottom:22px"><div class="wrap"><div class="kicker">FAMILY TREASURY · السجل المالي</div><h1 class="title">صندوق آل مبشر بن عبدالله</h1></div></header>`;
@@ -700,7 +750,7 @@ function onboardView() {
     <p style="line-height:2">في صندوق <b>آل مبشر بن عبدالله</b><br>صندوق العائلة للتكافل والاستثمار.<br>لنجهّز حسابك الشخصي في خطوة واحدة.</p>
     <button class="btn gold block" id="obPick">اختر اسمك ←</button></div>`;
   else if (st === 'pick') b = `<div class="card"><h2>الرجاء اختر اسمك</h2><div class="small muted" style="margin-bottom:12px">اضغط على اسمك من القائمة</div>
-    ${Object.entries(ROSTER || {}).sort((a, c) => a[1].localeCompare(c[1], 'ar')).map(([id, n]) => `<button class="namebtn" data-obm="${id}"><span class="av">${esc(n.slice(0, 1))}</span>${esc(n)}</button>`).join('')}</div>`;
+    ${Object.entries(ROSTER || {}).sort((a, c) => a[1].localeCompare(c[1], 'ar')).map(([id, n]) => { const st = REGS[id]; return `<button class="namebtn" data-obm="${id}" ${st ? 'style="opacity:.75"' : ''}><span class="av">${esc(n.slice(0, 1))}</span><span style="flex:1">${esc(n)}</span>${st === 'approved' ? '<span class="pill done">✓ تم التوثيق</span>' : st === 'pending' ? '<span class="pill mid">⏳ بانتظار التوثيق</span>' : ''}</button>`; }).join('')}</div>`;
   else if (st === 'pin') {
     const n = (ROSTER || {})[OB.mid] || '', isNew = OB.mode !== 'login';
     b = `<div class="card"><div style="text-align:center"><span class="av" style="width:56px;height:56px;font-size:24px;margin:0 auto">${esc(n.slice(0, 1))}</span><h2 style="margin-top:8px">${esc(n)}</h2></div>
@@ -718,10 +768,14 @@ function onboardView() {
 }
 function wireOnboard() {
   const on = (id, f) => { const e = $('#' + id); if (e) e.onclick = f; };
-  on('obPick', () => { OB.step = 'pick'; render(); });
+  on('obPick', () => { OB.step = 'pick'; render(); listenRegs(); });
   on('obOut', memberLogout);
   on('obBack', () => { OB.step = OB.step === 'pin' ? 'pick' : 'welcome'; render(); });
-  $$('[data-obm]').forEach(x => x.onclick = () => { OB.mid = x.dataset.obm; OB.mode = lsGet('mubasher_reg_' + x.dataset.obm) ? 'login' : 'new'; OB.step = 'pin'; render(); });
+  $$('[data-obm]').forEach(x => x.onclick = () => {
+    const st = REGS[x.dataset.obm];
+    if (st) return confirmSheet(st === 'approved' ? '✓ هذا الاسم موثّق' : '⏳ هذا الاسم بانتظار التوثيق', st === 'approved' ? 'صاحب هذا الاسم يدخل برقمه السري مباشرة من الشاشة الأولى. إذا كان هذا اسمك ونسيت رقمك، اطلب من أمين الصندوق «إعادة تعيين».' : 'تم تسجيل هذا الاسم وينتظر توثيق أمين الصندوق. إذا كان اسمك، تقدر تدخل برقمك اللي اخترته.', 'هذا اسمي — دخول برقمي', () => { OB.mid = x.dataset.obm; OB.mode = 'login'; OB.step = 'pin'; render(); });
+    OB.mid = x.dataset.obm; OB.mode = 'new'; OB.step = 'pin'; render();
+  });
   $$('[data-obt]').forEach(x => x.onclick = () => { OB.mode = x.dataset.obt; render(); });
   const go = $('#obGo'); if (!go) return;
   const err = t => $('#obErr').textContent = t;
@@ -740,7 +794,7 @@ function wireOnboard() {
       if (isNew) {
         let exists = false;
         if (pin === code) { go.disabled = false; return err('لا تستخدم رمز العائلة كرقم شخصي — اختر رقمًا آخر'); }
-        try { const bt = fs.batch(); bt.set(fs.doc('accounts/' + mid), {pin, status: 'pending', uid: u, at: Date.now(), code}); bt.set(fs.doc('pinIndex/' + pin), {memberId: mid}); await bt.commit(); lsSet('mubasher_reg_' + mid, '1'); }
+        try { const bt = fs.batch(); bt.set(fs.doc('accounts/' + mid), {pin, status: 'pending', uid: u, at: Date.now(), code}); bt.set(fs.doc('pinIndex/' + pin), {memberId: mid}); bt.set(fs.doc('regs/' + mid), {status: 'pending'}); await bt.commit(); lsSet('mubasher_reg_' + mid, '1'); }
         catch (e) { if (!/permission/.test(e.code || e.message)) { go.disabled = false; return err(sugErr(e)); } exists = true; }
         if (exists) {
           try { await fs.doc('bindings/' + u).set({memberId: mid, pin}); }
@@ -770,9 +824,18 @@ function listenAdmin() {
   }, err => { setSync('off'); toast('تعذّر قراءة البيانات: ' + err.message, true); }));
   unsubs.push(fs.collection('accounts').onSnapshot(s => {
     ACCTS = {}; s.docs.forEach(d => ACCTS[d.id] = d.data()); softRender();
+    notifyNew();
+    if (!window._regsDone) { window._regsDone = true; const bt = fs.batch(); let n = 0; Object.entries(ACCTS).forEach(([mid, a]) => { bt.set(fs.doc('regs/' + mid), {status: a.status}); n++; }); if (n) bt.commit().catch(() => {}); }
     if (!window._pinIdxDone) { window._pinIdxDone = true; const bt = fs.batch(); let n = 0; Object.entries(ACCTS).forEach(([mid, a]) => { if (a.pin) { bt.set(fs.doc('pinIndex/' + a.pin), {memberId: mid}); n++; } }); if (n) bt.commit().catch(() => {}); }
   }, () => {}));
+  unsubs.push(fs.collection('wreq').onSnapshot(q => { WREQ = q.docs.map(d => Object.assign({id: d.id}, d.data())); softRender(); notifyNew(); }, () => {}));
   unsubs.push(fs.doc('fund/audit').onSnapshot(s => { AUDIT = s.exists ? (s.data().items || []) : []; }, () => {}));
+}
+function notifyNew() {
+  if (MODE !== 'admin' && MODE !== 'loading') return;
+  const cur = new Set([...Object.entries(ACCTS).filter(([, a]) => a.status === 'pending').map(([k]) => 'a' + k), ...WREQ.filter(r => r.status === 'pending').map(r => 'w' + r.id)]);
+  if (SEEN_REQ) cur.forEach(k => { if (!SEEN_REQ.has(k)) toast(k[0] === 'a' ? '📩 طلب توثيق جديد: ' + memName(DB || {members: []}, k.slice(1)) : '💸 طلب سحب أرباح جديد', false, 4000); });
+  SEEN_REQ = cur;
 }
 
 async function persist(action, detail, extra) {
@@ -801,9 +864,9 @@ async function mutate(fn, action, extra) {
 }
 
 /* ================= UI PRIMITIVES ================= */
-function toast(msg, bad) {
+function toast(msg, bad, ms) {
   const t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.textContent = msg;
-  document.body.appendChild(t); setTimeout(() => t.remove(), bad ? 4200 : 2200);
+  document.body.appendChild(t); setTimeout(() => t.remove(), ms || (bad ? 4200 : 2200));
 }
 function sheet(title, body, onMount) {
   const ov = document.createElement('div'); ov.className = 'sheet-ov';
@@ -903,7 +966,9 @@ function miniHero() {
 function navHTML() {
   const items = [['home', '🏛️', 'الرئيسية'], ['members', '👥', 'الأفراد'], ['ledger', '📜', 'الحركات'], ['invest', '📈', 'الاستثمار'], ['council', '🗣️', 'المجلس'], ['more', MODE === 'admin' ? '⚙️' : '☰', MODE === 'admin' ? 'الإدارة' : 'المزيد']];
   const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'pending').length : 0;
-  return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}${k === 'council' && nNew ? `<i class="nbadge">${arD(nNew)}</i>` : ''}</button>`).join('')}</div></nav>`;
+  const nAdm = MODE === 'admin' ? Object.values(ACCTS).filter(a => a.status === 'pending').length + WREQ.filter(r => r.status === 'pending' || r.status === 'approved').length : 0;
+  const badge = k => k === 'council' && nNew ? `<i class="nbadge">${arD(nNew)}</i>` : k === 'more' && nAdm ? `<i class="nbadge">${arD(nAdm)}</i>` : '';
+  return `<nav class="nav"><div class="in">${items.map(([k, i, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><span class="i">${i}</span>${l}${badge(k)}</button>`).join('')}</div></nav>`;
 }
 
 /* ---- guest ---- */
@@ -955,6 +1020,8 @@ function homeBody(S, c) {
   if (MODE === 'admin') {
     const pend = Object.values(ACCTS).filter(a => a.status === 'pending').length;
     if (pend) h += `<button class="card cardbtn" style="margin-top:14px;border-color:var(--gold)" data-menu="accounts"><span style="font-size:22px">🪪</span><div style="flex:1"><b>${arD(pend)} ${pend === 1 ? 'طلب توثيق' : 'طلبات توثيق'} بانتظارك</b><div class="small muted">أعضاء اختاروا أسماءهم وينتظرون موافقتك</div></div><span class="muted">‹</span></button>`;
+    const wq = WREQ.filter(r => r.status === 'pending' || r.status === 'approved').length;
+    if (wq) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--gold)" data-menu="wreqs"><span style="font-size:22px">💸</span><div style="flex:1"><b>${arD(wq)} طلب سحب أرباح</b><div class="small muted">بانتظار موافقتك أو تحويلك</div></div><span class="muted">‹</span></button>`;
     const late = lateList(c);
     if (late.length) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-menu="late"><span style="font-size:22px">⚠️</span><div style="flex:1"><b>${arD(late.length)} ${late.length === 1 ? 'عضو متأخر' : 'أعضاء متأخرين'}</b><div class="small muted">أكثر من ٦ أشهر بدون إيداع ولم يكملوا المستهدف</div></div><span class="muted">‹</span></button>`;
   }
@@ -966,6 +1033,11 @@ function homeBody(S, c) {
   if (openP) h += `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🗓️</span><div style="flex:1"><b>${esc(openP.name)}</b><div class="small muted">${fmtH(openP.start)} ← ${fmtH(openP.end)}</div></div><span class="pill blue">مفتوحة</span></div>`;
   const nm = nextMeeting(DB);
   if (nm) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗣️</span><div style="flex:1"><b>الاجتماع القادم: ${esc(nm.title)}</b><div class="small muted">${fmtH(nm.date)}${nm.time ? ' · ' + fmtTime(nm.time) : ''}${nm.place ? ' · ' + esc(nm.place) : ''}</div></div><span class="muted">‹</span></button>`;
+  if (MODE === 'member' && ME && c.M[ME]) {
+    const x = c.M[ME];
+    if (x.owed) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-mem="${ME}"><span style="font-size:22px">📋</span><div style="flex:1"><b>عليك مستحق ${fmt(x.owed)} ر.س</b><div class="small muted">نصيبك من مطالبة — تواصل مع أمين الصندوق للسداد</div></div><span class="muted">‹</span></button>`;
+    WREQ.filter(r => r.status !== 'done' || Date.now() - (r.doneAt || 0) < 7 * 864e5).forEach(r => { h += `<div class="card" style="margin-top:10px;display:flex;gap:10px;align-items:center"><span style="font-size:22px">💸</span><div style="flex:1"><b>طلب سحب أرباح ${fmt(r.amount)} ر.س</b><div class="small muted">${{pending: '⏳ بانتظار موافقة أمين الصندوق', approved: '✅ تمت الموافقة — جاري التحويل', done: '✓ تم تحويل الأرباح', rejected: '✕ لم يُعتمد' + (r.reason ? ': ' + esc(r.reason) : '')}[r.status]}</div></div></div>`; });
+  }
   openPolls().forEach(pl => { h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗳️</span><div style="flex:1"><b>تصويت مفتوح: ${esc(pl.q)}</b><div class="small muted">يُغلق ${fmtH(pl.closeDate)}</div></div><span class="muted">‹</span></button>`; });
   const nNew = MODE === 'admin' ? SUGG.filter(x => x.status === 'pending').length : 0;
   if (nNew) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">💬</span><div style="flex:1"><b>${arD(nNew)} مقترح بانتظار موافقتك</b></div><span class="muted">‹</span></button>`;
@@ -998,7 +1070,7 @@ function membersBody(c) {
 function openMember(id) {
   const c = compute(DB), m = DB.members.find(x => x.id === id), x = c.M[id], t = target(DB, m);
   const pct = Math.min(100, Math.round(x.contrib / t * 100)), st = statusFor(x.contrib, t);
-  const myEntries = DB.entries.filter(e => (e.alloc && e.alloc[id] !== undefined) || e.memberId === id || (e.reversalOf && (DB.entries.find(o => o.id === e.reversalOf) || {}).memberId === id)).sort(byDate).reverse();
+  const myEntries = DB.entries.filter(e => (e.alloc && e.alloc[id] !== undefined) || (e.dues && e.dues[id] !== undefined) || e.memberId === id || (e.reversalOf && (DB.entries.find(o => o.id === e.reversalOf) || {}).memberId === id)).sort(byDate).reverse();
   const parts = DB.investments.filter(i => i.shares && i.shares[id] && i.status !== 'cancelled');
   let h = `<div class="md-head"><div class="md-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}${m.completedRank ? ' · الترتيب ' + arD(m.completedRank) : ''}</span>
   <div class="small muted" style="margin-top:8px">الرصيد الحالي</div><div class="md-bal num">${fmt(x.balance)}${SAR}</div></div>
@@ -1009,7 +1081,10 @@ function openMember(id) {
   <div class="stat"><span>نقد غير مستثمر</span><b>${fmt(x.cash)}${SAR}</b></div>
   <div class="stat"><span>أرباح محققة</span><b style="color:var(--good)">+${fmt(x.profit)}${SAR}</b></div>
   ${x.spent ? `<div class="stat"><span>نصيبه من المصروفات</span><b style="color:var(--bad)">−${fmt(x.spent)}${SAR}</b></div>` : ''}
-  <div class="stat"><span>أرباح متوقعة</span><b style="color:var(--gold2)">≈ ${fmt(x.expected)}${SAR}</b></div></div></div>
+  <div class="stat"><span>أرباح متوقعة</span><b style="color:var(--gold2)">≈ ${fmt(x.expected)}${SAR}</b></div>
+  ${x.pused ? `<div class="stat"><span>أرباح مصروفة / مستخدمة</span><b>${fmt(x.pused)}${SAR}</b></div>` : ''}
+  ${x.owed ? `<div class="stat"><span>⚠️ مستحق عليه</span><b style="color:var(--bad)">${fmt(x.owed)}${SAR}</b></div>` : ''}</div></div>
+  ${profitBox(m, x)}
   <div class="sec"><div class="sh"><h2 style="font-size:14px">نمو رصيده</h2></div><div class="card">${lineChart(x.series, 110)}</div></div>
   <div class="sec"><div class="sh"><h2 style="font-size:14px">مشاركته في الاستثمارات</h2></div>${parts.length ? `<div class="card">${parts.map(i => {
     const share = i.shares[id], p = i.status === 'completed' ? ((DB.entries.find(e => e.id === i.maturityEntryId) || {}).profit || {})[id] || 0 : expProfit(i) * share / i.principal;
@@ -1019,6 +1094,7 @@ function openMember(id) {
   <div class="btn-row" style="margin-top:14px"><button class="btn gold" id="cert">📜 شهادة مساهمة</button><button class="btn ghost" id="stmt">🧾 كشف حساب</button></div>`;
   if (MODE === 'admin') h += `<div class="sec"><div class="sh"><h2 style="font-size:14px">إجراءات المدير</h2></div>
   <div class="btn-row"><button class="btn" id="mDep">＋ إيداع</button><button class="btn ghost" id="mWd">− سحب</button></div>
+  ${x.owed ? '<div class="btn-row" style="margin-top:8px"><button class="btn gold" id="mSet">✓ سداد مستحق</button></div>' : ''}
   <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="mWa">💬 تذكير واتساب</button><button class="btn ghost" id="mEdit">✏️ تعديل</button></div></div>`;
   sheet('تفاصيل الفرد', h, (b, close) => {
     requestAnimationFrame(() => $$('.bar>i[data-w]', b).forEach(el => el.style.width = el.dataset.w + '%'));
@@ -1027,9 +1103,11 @@ function openMember(id) {
     $$('[data-undo]', b).forEach(btn => btn.onclick = () => { close(); undoEntry(btn.dataset.undo); });
     $$('[data-rcpt]', b).forEach(btn => btn.onclick = () => receiptView(btn.dataset.rcpt));
     const ch = $('.gch', b); if (ch) wireCharts(b);
+    const pr = $('#pReq', b); if (pr) pr.onclick = () => { close(); formProfitRequest(); };
     if (MODE !== 'admin') return;
     $('#mDep', b).onclick = () => { close(); formContribution(id); };
     $('#mWd', b).onclick = () => { close(); formWithdrawal(id); };
+    const ms = $('#mSet', b); if (ms) ms.onclick = () => { close(); formSettle(id); };
     $('#mWa', b).onclick = () => remind(m, x);
     $('#mEdit', b).onclick = () => { close(); formEditMember(id); };
   });
@@ -1041,18 +1119,20 @@ function ledgerRow(e, forMember) {
   let cls = IN_TYPES[e.type] ? 'in' : 'out', sign = IN_TYPES[e.type] ? '+ ' : '− ';
   if (e.type === 'invest') { cls = 'iv'; sign = '⇄ '; }
   if (e.type === 'reversal') { cls = 'fix'; sign = '↺ '; }
+  if (e.type === 'settle') { cls = 'fix'; sign = '✓ '; }
   let amt = e.amount;
+  if (forMember && e.type === 'claim') amt = ((e.pused || {})[forMember] || 0) + ((e.dues || {})[forMember] || 0);
   if (forMember && e.alloc && e.alloc[forMember] !== undefined && (e.type === 'expense' || e.type === 'maturity' || e.type === 'invest')) {
     amt = Math.abs(e.type === 'maturity' ? (e.profit || {})[forMember] || 0 : e.alloc[forMember]);
     if (e.type === 'maturity') sign = '+ ربح ';
   }
   const canUndo = MODE === 'admin' && isLive(e);
-  return `<div class="lg ${voided ? 'void' : ''}"><span class="dot ${cls}"></span><div class="lg-b"><div class="lg-d">${esc(e.desc)}${voided ? '<span class="tag">مُصحَّح</span>' : ''}</div>${e.note ? `<div class="lg-n">${esc(e.note)}</div>` : ''}<div class="lg-t">${dateBoth(e.date)}${e.receiptNo && !voided ? ` · <button class="lnk" data-rcpt="${e.id}">🧾 سند</button>` : ''}${canUndo ? ` · <button class="lnk" data-undo="${e.id}">تصحيح</button>` : ''}</div></div><div class="lg-a ${cls}">${sign}${fmt(amt)}</div></div>`;
+  return `<div class="lg ${voided ? 'void' : ''}"><span class="dot ${cls}"></span><div class="lg-b"><div class="lg-d">${esc(e.desc)}${voided ? '<span class="tag">مُصحَّح</span>' : ''}</div>${e.note ? `<div class="lg-n">${esc(e.note)}</div>` : ''}<div class="lg-t">${dateBoth(e.date)}${e.receiptNo && !voided ? ` · <button class="lnk" data-rcpt="${e.id}">🧾 ${e.voucher ? 'سند صرف' : 'سند'}</button>` : ''}${canUndo ? ` · <button class="lnk" data-undo="${e.id}">تصحيح</button>` : ''}</div></div><div class="lg-a ${cls}">${sign}${fmt(amt)}</div></div>`;
 }
 function ledgerBody() {
   let list = DB.entries.slice().sort(byDate).reverse();
   if (ledgerFilter === 'in') list = list.filter(e => IN_TYPES[e.type]);
-  if (ledgerFilter === 'out') list = list.filter(e => e.type === 'withdrawal' || e.type === 'expense');
+  if (ledgerFilter === 'out') list = list.filter(e => ['withdrawal', 'expense', 'pwithdraw', 'claim'].includes(e.type));
   if (ledgerFilter === 'inv') list = list.filter(e => e.type === 'invest' || e.type === 'maturity');
   if (ledgerFilter === 'fix') list = list.filter(e => e.type === 'reversal' || e.reversedBy);
   const per = (DB.periods || []).find(p => p.id === ledgerPeriod);
@@ -1384,16 +1464,19 @@ function receiptView(eid, offer) {
   const after = compute(DB, e.date).M[e.memberId] || {contrib: 0};
   const hal = Math.round((e.amount % 1) * 100);
   const words = 'فقط ' + tafqit(e.amount) + ' ريال سعودي' + (hal ? ' و' + tafqit(hal) + ' هللة' : '') + ' لا غير';
-  const txt = `🧾 *سند قبض رقم ${e.receiptNo}*\nصندوق آل مبشر بن عبدالله\n\nاستلمنا من: ${m.name}\nالمبلغ: ${fmt(e.amount)} ريال\n(${words})\nالتاريخ: ${fmtH(e.date)} — ${fmtG(e.date)}\nالبيان: مساهمة في الصندوق${e.note ? ' — ' + e.note : ''}\nإجمالي مساهماتك بعدها: ${fmt(after.contrib)} ريال\n\nجزاك الله خيرًا 🌿\n${SITE_URL}`;
-  const html = `<div class="rcpt"><div class="small muted" style="text-align:center">صندوق آل مبشر بن عبدالله · FAMILY TREASURY</div><h1>سند قبض</h1><div class="no">رقم ${e.receiptNo}</div>
+  const V = !!e.voucher, title = V ? 'سند صرف' : 'سند قبض';
+  const what = e.type === 'settle' ? 'سداد مستحق مطالبة' : e.type === 'pwithdraw' ? 'صرف أرباح' : e.type === 'withdrawal' ? 'سحب من رصيده' : 'مساهمة في الصندوق';
+  const lastLine = V ? (e.type === 'pwithdraw' ? `أرباحه المتاحة بعدها: ${fmt(compute(DB, e.date).M[e.memberId] ? compute(DB, e.date).M[e.memberId].pavail : 0)}` : '') : `إجمالي مساهماته بعدها: ${fmt(after.contrib)}`;
+  const txt = `🧾 *${title} رقم ${e.receiptNo}*\nصندوق آل مبشر بن عبدالله\n\n${V ? 'صُرف إلى' : 'استلمنا من'}: ${m.name}\nالمبلغ: ${fmt(e.amount)} ريال\n(${words})\nالتاريخ: ${fmtH(e.date)} — ${fmtG(e.date)}\nالبيان: ${what}${e.note ? ' — ' + e.note : ''}${lastLine ? '\n' + lastLine + ' ريال' : ''}\n\nجزاك الله خيرًا 🌿\n${SITE_URL}`;
+  const html = `<div class="rcpt"><div class="small muted" style="text-align:center">صندوق آل مبشر بن عبدالله · FAMILY TREASURY</div><h1>${title}</h1><div class="no">رقم ${e.receiptNo}</div>
   <div class="amt">${fmt(e.amount)} ر.س</div><div class="words">${words}</div><div style="height:12px"></div>
-  <div class="row"><span>استلمنا من</span><b>${esc(m.name)}</b></div>
+  <div class="row"><span>${V ? 'صُرف إلى' : 'استلمنا من'}</span><b>${esc(m.name)}</b></div>
   <div class="row"><span>التاريخ</span><b>${fmtH(e.date)}</b></div>
   <div class="row"><span>الموافق</span><b>${fmtG(e.date)}</b></div>
-  <div class="row"><span>البيان</span><b>مساهمة في الصندوق${e.note ? ' — ' + esc(e.note) : ''}</b></div>
-  <div class="row"><span>إجمالي مساهماته بعدها</span><b>${fmt(after.contrib)} ر.س</b></div>
-  <div style="height:70px"></div><div class="small muted">أمين الصندوق</div><div class="seal2">تم<br>الاستلام ✓</div></div>`;
-  sheet(offer ? 'تم الحفظ ✓ — سند القبض' : 'سند قبض', html + `<div class="btn-row" style="margin-top:12px">${MODE === 'admin' ? '<button class="btn gold" id="rwa">💬 إرسال للعضو واتساب</button>' : ''}<button class="btn ghost" id="rpdf">🖨️ PDF</button></div>`, b => {
+  <div class="row"><span>البيان</span><b>${what}${e.note ? ' — ' + esc(e.note) : ''}</b></div>
+  ${lastLine ? `<div class="row"><span>${lastLine.split(':')[0]}</span><b>${lastLine.split(':')[1]} ر.س</b></div>` : ''}
+  <div style="height:70px"></div><div class="small muted">أمين الصندوق</div><div class="seal2">${V ? 'تم<br>الصرف ✓' : 'تم<br>الاستلام ✓'}</div></div>`;
+  sheet(offer ? 'تم الحفظ ✓ — ' + title : title, html + `<div class="btn-row" style="margin-top:12px">${MODE === 'admin' ? '<button class="btn gold" id="rwa">💬 إرسال للعضو واتساب</button>' : ''}<button class="btn ghost" id="rpdf">🖨️ PDF</button></div>`, b => {
     const w = $('#rwa', b); if (w) w.onclick = () => window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(txt), '_blank');
     $('#rpdf', b).onclick = () => printView(html);
   });
@@ -1554,7 +1637,7 @@ async function acctAction(mid, approve) {
   if (DEMO || SANDBOX) { if (approve) ACCTS[mid].status = 'approved'; else delete ACCTS[mid]; toast('تم ✓'); return; }
   try {
     const bt = fs.batch();
-    if (approve) bt.update(fs.doc('accounts/' + mid), {status: 'approved', approvedAt: Date.now()}); else { bt.delete(fs.doc('accounts/' + mid)); if (ACCTS[mid] && ACCTS[mid].pin) bt.delete(fs.doc('pinIndex/' + ACCTS[mid].pin)); }
+    if (approve) { bt.update(fs.doc('accounts/' + mid), {status: 'approved', approvedAt: Date.now()}); bt.set(fs.doc('regs/' + mid), {status: 'approved'}); } else { bt.delete(fs.doc('accounts/' + mid)); bt.delete(fs.doc('regs/' + mid)); if (ACCTS[mid] && ACCTS[mid].pin) bt.delete(fs.doc('pinIndex/' + ACCTS[mid].pin)); }
     bt.set(fs.doc('fund/audit'), {items: firebase.firestore.FieldValue.arrayUnion({at: Date.now(), action: 'حسابات', detail: (approve ? 'توثيق حساب: ' : 'إلغاء/إعادة تعيين حساب: ') + n})}, {merge: true});
     await bt.commit(); toast(approve ? 'تم توثيق ' + n + ' ✓' : 'تم ✓');
   } catch (e) { toast('تعذّر: ' + e.message, true); }
@@ -1573,9 +1656,105 @@ function formAccounts() {
     $$('[data-aok]', b).forEach(x => x.onclick = async () => { await acctAction(x.dataset.aok, true); close(); formAccounts(); });
     $$('[data-ano]', b).forEach(x => x.onclick = () => confirmSheet('رفض الطلب', `سيُحذف طلب «${esc(memName(DB, x.dataset.ano))}» ويقدر يسجّل من جديد.`, 'رفض', async () => { await acctAction(x.dataset.ano, false); formAccounts(); }, true));
     $$('[data-ares]', b).forEach(x => x.onclick = () => confirmSheet('إعادة تعيين', `سيُلغى رقم «${esc(memName(DB, x.dataset.ares))}» ويخرج من كل أجهزته، ويحتاج يختار رقمًا جديدًا وتوثّقه من جديد.`, 'إعادة تعيين', async () => { await acctAction(x.dataset.ares, false); formAccounts(); }, true));
-    $('#inv', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم ورحمة الله 🌿\nصار لكل فرد في صندوق آل مبشر بن عبدالله حساب شخصي:\n\n1️⃣ افتح الرابط: ${SITE_URL}\n2️⃣ اضغط «دخول أفراد العائلة» واكتب الرمز: ${DB.settings.familyCode}\n3️⃣ اختر اسمك، واختر رقمًا سريًا من ٨ أرقام تحفظه (مثل تاريخ ميلادك)\n4️⃣ انتظر توثيقي، وتنفتح لك الصفحة تلقائيًا ✅\n\nجوالك يتذكرك بعدها، فما تحتاج تكتب شي مرة ثانية.`), '_blank');
+    $('#inv', b).onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(`السلام عليكم ورحمة الله 🌿\nصار لكل فرد في صندوق آل مبشر بن عبدالله حساب شخصي:\n\n1️⃣ افتح الرابط: ${SITE_URL}\n2️⃣ اضغط «دخول أفراد العائلة» واكتب الرمز: ${DB.settings.familyCode}\n3️⃣ اختر اسمك، واختر رقمًا سريًا من ٨ أرقام تحفظه ولا يخمّنه غيرك\n4️⃣ انتظر توثيقي، وتنفتح لك الصفحة تلقائيًا ✅\n\nجوالك يتذكرك بعدها، فما تحتاج تكتب شي مرة ثانية.`), '_blank');
   });
 }
+/* ---- claims & dues ---- */
+function formClaim() {
+  const c = compute(DB), ms = DB.members.filter(m => m.active !== false);
+  sheet('📋 مطالبة بالتساوي', `<div class="f"><label>السبب</label><div class="btn-row" style="margin-bottom:6px">${['دية', 'مساعدة', 'مناسبة'].map(t => `<button class="btn ghost" data-rs="${t}" style="padding:6px">${t}</button>`).join('')}</div><input class="inp" id="r" placeholder="مثال: دية — قضية فلان"></div>
+  <div class="f"><label>المبلغ الكلي (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal"></div><div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
+  <div class="f"><label>على من؟</label><div class="btn-row" style="margin-bottom:6px"><button class="btn ghost" id="all" style="padding:6px">الكل</button><button class="btn ghost" id="none" style="padding:6px">لا أحد</button></div>
+  ${ms.map(m => `<label class="part"><input type="checkbox" data-cm="${m.id}" checked><span class="n">${esc(m.name)}<small>${c.M[m.id].contrib >= target(DB, m) ? 'مكتمل · أرباح متاحة ' + fmt(c.M[m.id].pavail) : statusFor(c.M[m.id].contrib, target(DB, m)).label}</small></span><b class="num small" data-cp="${m.id}"></b></label>`).join('')}</div>
+  <div class="card small" id="sum" style="margin-bottom:10px"></div>
+  <div class="small muted" style="margin-bottom:10px">المكتمل: يُخصم نصيبه من أرباحه المتاحة والباقي يصير مستحقًا عليه. المستمر والتأسيس: نصيبه كله مستحق عليه، ورصيده لا يُمس.</div>
+  <button class="btn gold block" id="ok">تسجيل المطالبة</button>`, (b, close) => {
+    $$('[data-rs]', b).forEach(x => x.onclick = () => { $('#r', b).value = x.dataset.rs + ' — '; $('#r', b).focus(); });
+    const sel = () => $$('[data-cm]', b).filter(x => x.checked).map(x => x.dataset.cm);
+    const upd = () => {
+      const mids = sel(), amt = +$('#a', b).value || 0, sh = mids.length ? amt / mids.length : 0; let fp = 0, ow = 0;
+      $$('[data-cp]', b).forEach(el => el.textContent = '');
+      mids.forEach(k => { const m = DB.members.find(y => y.id === k), x = c.M[k], p = x.contrib >= target(DB, m) ? Math.min(sh, x.pavail) : 0; fp += p; ow += sh - p; $(`[data-cp="${k}"]`, b).textContent = sh ? (p ? `أرباح ${fmt(p)}` : '') + (sh - p > 0.01 ? (p ? ' + ' : '') + `مستحق ${fmt(sh - p)}` : '') : ''; });
+      $('#sum', b).innerHTML = `${arD(mids.length)} عضو · نصيب كل عضو <b>${fmt(sh)}</b> ر.س<br>من الأرباح: <b>${fmt(fp)}</b> · مستحقات: <b style="color:var(--bad)">${fmt(ow)}</b>`;
+    };
+    $('#a', b).oninput = upd; $$('[data-cm]', b).forEach(x => x.onchange = upd);
+    $('#all', b).onclick = () => { $$('[data-cm]', b).forEach(x => x.checked = true); upd(); };
+    $('#none', b).onclick = () => { $$('[data-cm]', b).forEach(x => x.checked = false); upd(); };
+    upd();
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.claim(db, {reason: $('#r', b).value.trim().replace(/—\s*$/, '').trim(), amount: +$('#a', b).value, date: hVal(b, 'd'), mids: sel()}), 'مطالبة')) { close(); if (Object.values(compute(DB).M).some(x => x.owed > 0)) setTimeout(formDues, 400); } };
+  });
+}
+function formSettle(mid) {
+  const c = compute(DB), owers = DB.members.filter(m => c.M[m.id] && c.M[m.id].owed > 0);
+  if (!owers.length) return toast('لا توجد مستحقات على أحد 👏');
+  if (!mid || !c.M[mid].owed) mid = owers[0].id;
+  sheet('✓ سداد مستحق', `<div class="f"><label>العضو</label><select class="inp" id="m">${owers.map(m => `<option value="${m.id}" ${m.id === mid ? 'selected' : ''}>${esc(m.name)} — ${fmt(c.M[m.id].owed)}</option>`).join('')}</select></div>
+  <div class="f"><label>المبلغ المسدّد (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal" value="${c.M[mid].owed}"></div>
+  <div class="f"><label>التاريخ</label>${hInput('d')}</div><div class="f"><label>ملاحظة</label><input class="inp" id="n" placeholder="مثال: تحويل بنكي"></div>
+  <button class="btn gold block" id="ok">تسجيل السداد</button>`, (b, close) => {
+    $('#m', b).onchange = () => $('#a', b).value = c.M[$('#m', b).value].owed;
+    $('#ok', b).onclick = async () => { let eid; if (await mutate(db => { const r = A.settle(db, $('#m', b).value, +$('#a', b).value, hVal(b, 'd'), $('#n', b).value.trim()); eid = db.entries[db.entries.length - 1].id; return r; }, 'سداد مستحق')) { close(); if (DEMO || SANDBOX) ensureReceipts(DB); setTimeout(() => receiptView(eid, true), 350); } };
+  });
+}
+function formDues() {
+  const c = compute(DB), L = DB.members.filter(m => c.M[m.id] && c.M[m.id].owed > 0);
+  const claims = DB.entries.filter(e => e.type === 'claim' && isLive(e)).sort(byDate).reverse();
+  sheet('📋 المستحقات', `${L.length ? L.map(m => `<div class="acc"><span class="n">${esc(m.name)}<small style="color:var(--bad)">مستحق ${fmt(c.M[m.id].owed)} ر.س</small></span><button class="btn" data-ds="${m.id}">✓ سداد</button><button class="btn ghost" data-dw="${m.id}">💬</button></div>`).join('') : '<div class="empty">لا توجد مستحقات 👏</div>'}
+  ${claims.length ? `<div class="sh" style="margin-top:16px"><h2 style="font-size:14px">المطالبات</h2></div>` + claims.map(e => `<div class="stat"><span>${esc(e.desc)}<br><span class="small muted">${fmtH(e.date)} · ${esc(e.note || '')}</span></span><b>${fmt(e.amount)}</b></div>`).join('') : ''}`, (b, close) => {
+    $$('[data-ds]', b).forEach(x => x.onclick = () => { close(); formSettle(x.dataset.ds); });
+    $$('[data-dw]', b).forEach(x => x.onclick = () => { const m = DB.members.find(y => y.id === x.dataset.dw); window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(`السلام عليكم ${m.name} 🌿\nمن صندوق آل مبشر بن عبدالله: عليك مستحق ${fmt(c.M[m.id].owed)} ريال، نصيبك من المطالبة.\nالتفاصيل في حسابك: ${SITE_URL}\nجزاك الله خيرًا.`), '_blank'); });
+  });
+}
+/* ---- profit withdrawal requests ---- */
+function profitBox(m, x) {
+  if (MODE !== 'member' || m.id !== ME) return '';
+  const done = x.contrib >= target(DB, m), open = WREQ.some(r => r.status === 'pending' || r.status === 'approved');
+  if (!done) return `<div class="card small muted" style="margin-top:10px">💸 يُتاح طلب سحب الأرباح بعد إكمال المستهدف ${fmt(target(DB, m))} ر.س</div>`;
+  if (open) return `<div class="card small" style="margin-top:10px">💸 عندك طلب سحب أرباح قيد المعالجة</div>`;
+  return `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><div style="flex:1"><b>أرباحك المتاحة للسحب</b><div class="num" style="font-size:20px;font-weight:900;color:var(--good)">${fmt(x.pavail)} ر.س</div></div>${x.pavail > 0 ? '<button class="btn gold" id="pReq">💸 طلب سحب</button>' : ''}</div>`;
+}
+function formProfitRequest() {
+  const c = compute(DB), x = c.M[ME];
+  sheet('💸 طلب سحب أرباحي', `<div class="card" style="text-align:center"><div class="small muted">المتاح للسحب</div><div class="num" style="font-size:26px;font-weight:900;color:var(--good)">${fmt(x.pavail)} ر.س</div></div>
+  <div class="f" style="margin-top:12px"><label>المبلغ المطلوب</label><input class="inp" id="a" type="number" inputmode="decimal" value="${Math.floor(x.pavail)}"></div>
+  <div class="small muted" style="margin-bottom:10px">يصل الطلب لأمين الصندوق، وبعد موافقته وتحويل المبلغ يظهر لك في الحركات مع سند صرف.</div>
+  <div id="err" class="small" style="color:var(--bad);min-height:20px"></div><button class="btn gold block" id="ok">إرسال الطلب</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => {
+      const a = r2(+$('#a', b).value); if (!(a > 0) || a > x.pavail + 0.001) return $('#err', b).textContent = 'المبلغ غير صحيح أو أكبر من المتاح';
+      const doc = {memberId: ME, amount: a, status: 'pending', at: Date.now()};
+      if (DEMO || SANDBOX) { WREQ.push(Object.assign({id: uid(), uid: 'me'}, doc)); close(); render(); toast('وصل طلبك ✓'); return; }
+      try { doc.uid = auth.currentUser.uid; await fs.collection('wreq').add(doc); close(); toast('وصل طلبك ✓ بانتظار موافقة أمين الصندوق'); } catch (e) { $('#err', b).textContent = sugErr(e); }
+    };
+  });
+}
+async function wreqUpdate(id, patch) {
+  if (DEMO || SANDBOX) { Object.assign(WREQ.find(r => r.id === id), patch); render(); return true; }
+  try { await fs.doc('wreq/' + id).update(patch); return true; } catch (e) { toast('تعذّر: ' + e.message, true); return false; }
+}
+function formWreqs() {
+  const c = compute(DB), L = WREQ.slice().sort((a, b) => ({pending: 0, approved: 1, done: 2, rejected: 3}[a.status] - {pending: 0, approved: 1, done: 2, rejected: 3}[b.status]) || b.at - a.at);
+  const lab = {pending: '⏳ جديد', approved: '✅ موافق — بانتظار التحويل', done: '✓ تم التحويل', rejected: '✕ مرفوض'};
+  sheet('💸 طلبات سحب الأرباح', L.length ? L.map(r => `<div class="acc"><span class="n">${esc(memName(DB, r.memberId))} — ${fmt(r.amount)} ر.س<small>${lab[r.status]} · ${fmtH(isoOf(r.at))} · المتاح له الآن ${fmt((c.M[r.memberId] || {}).pavail || 0)}</small></span>
+    ${r.status === 'pending' ? `<button class="btn" data-wok="${r.id}">✅ موافقة</button><button class="btn ghost" data-wno="${r.id}">✕</button>` : r.status === 'approved' ? `<button class="btn gold" data-wdone="${r.id}">💸 تم التحويل</button><button class="btn ghost" data-wno="${r.id}">✕</button>` : ''}</div>`).join('') : '<div class="empty">لا توجد طلبات</div>', (b, close) => {
+    $$('[data-wok]', b).forEach(x => x.onclick = async () => { if (await wreqUpdate(x.dataset.wok, {status: 'approved', approvedAt: Date.now()})) { toast('تمت الموافقة ✓ حوّل المبلغ ثم اضغط «تم التحويل»'); close(); formWreqs(); } });
+    $$('[data-wno]', b).forEach(x => x.onclick = () => { close(); sheet('رفض الطلب', `<div class="f"><label>السبب (يظهر للعضو)</label><input class="inp" id="r"></div><button class="btn bad block" id="ok">رفض</button>`, (b2, c2) => { $('#ok', b2).onclick = async () => { if (await wreqUpdate(x.dataset.wno, {status: 'rejected', reason: $('#r', b2).value.trim()})) c2(); }; }); });
+    $$('[data-wdone]', b).forEach(x => x.onclick = () => { close(); formWreqDone(x.dataset.wdone); });
+  });
+}
+function formWreqDone(id) {
+  const r = WREQ.find(y => y.id === id), c = compute(DB);
+  sheet('💸 تم تحويل الأرباح', `<p style="margin-top:0"><b>${esc(memName(DB, r.memberId))}</b> طلب ${fmt(r.amount)} ر.س · المتاح ${fmt(c.M[r.memberId].pavail)}</p>
+  <div class="f"><label>المبلغ المحوَّل فعليًا</label><input class="inp" id="a" type="number" inputmode="decimal" value="${r.amount}"></div>
+  <div class="f"><label>تاريخ التحويل</label>${hInput('d')}</div><div class="f"><label>ملاحظة</label><input class="inp" id="n" placeholder="مثال: تحويل بنكي"></div>
+  <button class="btn gold block" id="ok">تسجيل التحويل وإصدار سند صرف</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => {
+      let eid; const amt = +$('#a', b).value;
+      const ok = await mutate(db => { const res = A.pwithdraw(db, r.memberId, amt, hVal(b, 'd'), $('#n', b).value.trim() || 'تم تحويل الأرباح', id); eid = res.id; return res.detail; }, 'صرف أرباح', DEMO || SANDBOX ? null : {writes: [['wreq/' + id, {status: 'done', doneAt: Date.now(), paid: r2(amt)}, true]]});
+      if (ok) { if (DEMO || SANDBOX) { Object.assign(r, {status: 'done', doneAt: Date.now()}); ensureReceipts(DB); } close(); setTimeout(() => receiptView(eid, true), 350); }
+    };
+  });
+}
+
 /* ---- late members ---- */
 function lateList(c) {
   const t = todayISO(), out = [];
@@ -1613,6 +1792,8 @@ function moreBody() {
     h += `<div class="sec"><div class="sh"><span class="orn">◈</span><h2>لوحة المدير</h2></div>
     ${menu('sandbox', '🧪', 'وضع التجربة', 'جرّب أي شي بدون ما ينحفظ')}
     ${menu('accounts', '🪪', 'حسابات الأعضاء', 'موثّق ' + arD(Object.values(ACCTS).filter(a => a.status === 'approved').length) + ' · بانتظار ' + arD(Object.values(ACCTS).filter(a => a.status === 'pending').length) + ' من ' + arD(DB.members.filter(m => m.active !== false).length))}
+    ${menu('dues', '📋', 'المستحقات', 'من عليه مستحقات من المطالبات — ' + arD(Object.values(compute(DB).M).filter(x => x.owed > 0).length))}
+    ${menu('wreqs', '💸', 'طلبات سحب الأرباح', 'بانتظارك: ' + arD(WREQ.filter(r => r.status === 'pending' || r.status === 'approved').length))}
     ${menu('late', '⚠️', 'المتأخرون', 'أكثر من ٦ أشهر بدون إيداع — ' + arD(lateList(compute(DB)).length))}
     ${menu('code', '🔑', 'رمز دخول العائلة', 'الرمز الحالي: ' + DB.settings.familyCode + ' — غيّره أو أرسله')}
     ${menu('backup', '💾', 'نسخة احتياطية', 'تنزيل كل البيانات في ملف تحفظه عندك')}
@@ -1702,8 +1883,8 @@ function wireMain(c) {
 
 /* ================= FORMS ================= */
 function quickAdd() {
-  sheet('إضافة', `${menu('q1', '💵', 'مساهمة / إيداع من فرد', 'تحويل وصل من أحد الأفراد')}${menu('q2', '📈', 'استثمار جديد', 'من النقد المتاح')}${menu('q3', '🧾', 'مصروف من الصندوق', 'يُخصم من النقد المتاح')}${menu('q4', '↩️', 'سحب لفرد', 'إرجاع جزء من نقد فرد')}${menu('q5', '👤', 'فرد جديد', '')}`, (b, close) => {
-    const go = {q1: formContribution, q2: formInvest, q3: formExpense, q4: formWithdrawal, q5: formAddMember};
+  sheet('إضافة', `${menu('q1', '💵', 'مساهمة / إيداع من فرد', 'تحويل وصل من أحد الأفراد')}${menu('q2', '📈', 'استثمار جديد', 'من النقد المتاح')}${menu('q3', '🧾', 'مصروف من الصندوق', 'يُخصم من النقد المتاح')}${menu('q4', '↩️', 'سحب لفرد', 'إرجاع جزء من نقد فرد')}${menu('q6', '📋', 'مطالبة بالتساوي', 'دية أو غيرها — تُقسم على الأعضاء')}${menu('q7', '✓', 'سداد مستحق', 'عضو سدّد نصيبه من مطالبة')}${menu('q5', '👤', 'فرد جديد', '')}`, (b, close) => {
+    const go = {q1: formContribution, q2: formInvest, q3: formExpense, q4: formWithdrawal, q5: formAddMember, q6: formClaim, q7: () => formSettle()};
     $$('[data-menu]', b).forEach(x => x.onclick = () => { close(); go[x.dataset.menu](); });
   });
 }
@@ -1904,6 +2085,8 @@ function menuAction(k) {
   if (k === 'code') return formCode();
   if (k === 'accounts') return formAccounts();
   if (k === 'late') return formLate();
+  if (k === 'dues') return formDues();
+  if (k === 'wreqs') return formWreqs();
   if (k === 'backup') { const name = `صندوق-آل-مبشر-نسخة-${todayISO()}.json`; download(name, JSON.stringify({kind: 'mubasher-fund-backup', at: Date.now(), db: DB}, null, 1), 'application/json'); toast('تم تنزيل النسخة ✓'); return; }
   if (k === 'excel') return exportExcel();
   if (k === 'restore') return formRestore();
