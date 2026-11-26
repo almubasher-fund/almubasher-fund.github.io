@@ -414,7 +414,9 @@ const SITE_URL = 'https://almubasher-fund.github.io';
 
 /* ================= DOMAIN ================= */
 const IN_TYPES = {opening: 1, contribution: 1, maturity: 1};
-const TYPE_LABEL = {opening:'رصيد افتتاحي', contribution:'مساهمة', withdrawal:'سحب لعضو', expense:'مصروف', invest:'استثمار', maturity:'استحقاق استثمار', reversal:'قيد تصحيح', claim:'مطالبة', settle:'سداد مستحق', pwithdraw:'صرف أرباح'};
+const TYPE_LABEL = {opening:'رصيد افتتاحي', contribution:'مساهمة', withdrawal:'سحب لعضو', expense:'مصروف', invest:'استثمار', maturity:'استحقاق استثمار', reversal:'قيد تصحيح', claim:'مطالبة', settle:'سداد مستحق', pwithdraw:'صرف أرباح', exitpay:'صرف تصفية'};
+const isExited = m => !!(m && m.exit);
+function exitPending(db, mid) { return db.investments.filter(i => i.status === 'active' && i.shares && i.shares[mid]); }
 const target = (db, m) => Number(m.target || db.settings.target || 10000);
 const expProfit = iv => (iv.manualProfit !== undefined && iv.manualProfit !== null && iv.manualProfit !== '') ? Number(iv.manualProfit) : iv.principal * (iv.rate / 100) * (iv.months / 12);
 const maturity = iv => iv.start ? addMonths(iv.start, iv.months) : null;
@@ -508,7 +510,7 @@ const A = {
   expense(db, amount, date, desc, note) {
     amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); if (!desc) throw new Error('اكتب البيان'); checkDate(db, date);
     const c = compute(db); if (c.cash + 0.001 < amount) throw new Error(`النقد المتاح في الصندوق ${fmt(c.cash)} فقط`);
-    const holders = Object.entries(c.M).filter(([, x]) => x.cash > 0.001);
+    const holders = Object.entries(c.M).filter(([k, x]) => x.cash > 0.001 && !isExited(db.members.find(m => m.id === k)));
     const tot = holders.reduce((s, [, x]) => s + x.cash, 0), alloc = {};
     let acc = 0;
     holders.forEach(([k, x], i) => { const v = i === holders.length - 1 ? r2(amount - acc) : r2(amount * x.cash / tot); acc = r2(acc + v); alloc[k] = -v; });
@@ -534,8 +536,17 @@ const A = {
     profit = r2(profit); if (!(profit >= 0)) throw new Error('أدخل الربح الفعلي'); checkDate(db, date);
     const ks = Object.keys(iv.shares), alloc = {}, inv = {}, pr = {};
     let acc = 0;
-    ks.forEach((k, i) => { const p = i === ks.length - 1 ? r2(profit - acc) : r2(profit * iv.shares[k] / iv.principal); acc = r2(acc + p); pr[k] = p; inv[k] = -iv.shares[k]; alloc[k] = r2(iv.shares[k] + p); });
-    const e = pushEntry(db, {date, type: 'maturity', amount: r2(iv.principal + profit), desc: `استحقاق: ${iv.title}`, note: `رأس المال ${fmt(iv.principal)} + ربح ${fmt(profit)} وُزّع على المشاركين حسب حصصهم`, invId: iv.id, alloc, inv, profit: pr});
+    ks.forEach((k, i) => { const p = i === ks.length - 1 ? r2(profit - acc) : r2(profit * iv.shares[k] / iv.principal); acc = r2(acc + p); pr[k] = p; inv[k] = -iv.shares[k]; });
+    let pool = 0; const stopped = [];
+    const t0 = new Date(iv.start || date).getTime(), t1 = new Date(date).getTime();
+    ks.forEach(k => { const m = db.members.find(x => x.id === k); if (m && m.exit && m.exit.profitMode === 'stop' && m.exit.date < date) {
+      const fr = t1 > t0 ? Math.max(0, Math.min(1, (new Date(m.exit.date).getTime() - t0) / (t1 - t0))) : 1, keep = r2(pr[k] * fr);
+      pool = r2(pool + pr[k] - keep); pr[k] = keep; stopped.push(k); } });
+    const rest = ks.filter(k => !stopped.includes(k));
+    if (pool > 0 && rest.length) { const base = rest.reduce((s, k) => s + iv.shares[k], 0); let a2 = 0; rest.forEach((k, i) => { const v = i === rest.length - 1 ? r2(pool - a2) : r2(pool * iv.shares[k] / base); a2 = r2(a2 + v); pr[k] = r2(pr[k] + v); }); }
+    if (pool > 0 && !rest.length) { const k = stopped[stopped.length - 1]; pr[k] = r2(pr[k] + pool); pool = 0; }
+    ks.forEach(k => alloc[k] = r2(iv.shares[k] + pr[k]));
+    const e = pushEntry(db, {date, type: 'maturity', amount: r2(iv.principal + profit), desc: `استحقاق: ${iv.title}`, note: `رأس المال ${fmt(iv.principal)} + ربح ${fmt(profit)} وُزّع على المشاركين حسب حصصهم` + (pool > 0 ? ` — أرباح المنسحبين بعد تاريخ خروجهم (${fmt(pool)}) وُزّعت على الباقين` : ''), invId: iv.id, alloc, inv, profit: pr});
     iv.status = 'completed'; iv.finalProfit = profit; iv.completedAt = date; iv.maturityEntryId = e.id;
     return `إقفال استثمار ${iv.title} بربح ${fmt(profit)}`;
   },
@@ -570,6 +581,29 @@ const A = {
     const e = pushEntry(db, {date, type: 'pwithdraw', amount, memberId: mid, desc: `صرف أرباح لـ ${n}`, note: note || 'تم تحويل الأرباح', alloc: {[mid]: -amount}, pused: {[mid]: amount}, reqId: reqId || null});
     return {detail: `صرف أرباح ${fmt(amount)} لـ ${n}`, id: e.id};
   },
+  exitMember(db, {mid, reason, recipient, relation, date, profitMode, note}) {
+    const m = db.members.find(x => x.id === mid); if (!m) throw new Error('العضو غير موجود'); if (m.exit) throw new Error('هذا العضو تمت تصفية حسابه مسبقًا');
+    if (!recipient) throw new Error('اكتب اسم المستلم'); checkDate(db, date);
+    m.exit = {reason, recipient, relation: relation || '', date, profitMode: profitMode || 'continue', at: Date.now()};
+    m.active = false;
+    const r = A.exitPay(db, mid, date, note, true);
+    return `تصفية حساب ${m.name} (${reason === 'death' ? 'وفاة' : 'خروج'}) — ${r.detail}`;
+  },
+  exitPay(db, mid, date, note, first) {
+    const m = db.members.find(x => x.id === mid); if (!m || !m.exit) throw new Error('العضو ليس في قائمة التصفية'); checkDate(db, date);
+    const x = compute(db).M[mid], off = r2(Math.min(x.owed, x.cash)), pay = r2(x.cash - off);
+    if (!first && !(x.cash > 0.001)) throw new Error('لا يوجد مبلغ مستحق للصرف الآن');
+    const to = m.exit.recipient + (m.exit.relation ? ` (${m.exit.relation})` : '');
+    const pend = exitPending(db, mid);
+    const parts = [];
+    if (off > 0) parts.push(`خُصم مستحق عليه ${fmt(off)}`);
+    if (pend.length) parts.push(`باقي حصته في: ${pend.map(i => i.title).join('، ')} — تُصرف عند الاستحقاق`);
+    if (note) parts.push(note);
+    const alloc = x.cash > 0.001 ? {[mid]: -x.cash} : {}, dues = off > 0 ? {[mid]: -off} : {};
+    const e = pushEntry(db, {date, type: 'exitpay', amount: pay, cashDelta: -x.cash, memberId: mid, recipient: to, desc: `${m.exit.reason === 'death' ? 'مستحقات المرحوم' : 'تصفية حساب'} ${m.name} ← ${to}`, note: parts.join(' — '), alloc, dues, exitFirst: !!first});
+    if (!pend.length) m.exit.settledAt = date;
+    return {detail: `صرف ${fmt(pay)} لـ ${to}`, id: e.id};
+  },
   reverse(db, entryId, reason) {
     const e = db.entries.find(x => x.id === entryId);
     if (!e || !isLive(e)) throw new Error('القيد غير قابل للتصحيح');
@@ -589,6 +623,11 @@ const A = {
     if (e.type === 'contribution' || e.type === 'opening') {
       const c = compute(db); if (c.M[e.memberId] && c.M[e.memberId].cash + 0.001 < e.amount) throw new Error('مبلغ هذه المساهمة داخل استثمار حاليًا؛ لا يمكن عكسه قبل إقفال الاستثمار');
     }
+    if (e.type === 'exitpay') {
+      const m = db.members.find(x => x.id === e.memberId);
+      if (e.exitFirst && db.entries.some(x => x.type === 'exitpay' && x.memberId === e.memberId && isLive(x) && x.id !== e.id)) throw new Error('صحّح دفعات التصفية اللاحقة أولًا');
+      if (m && m.exit) { if (e.exitFirst) { delete m.exit; m.active = true; } else delete m.exit.settledAt; }
+    }
     const r = pushEntry(db, {date, type: 'reversal', amount: e.amount, reversalOf: e.id, desc: `قيد تصحيح: ${e.desc}`, note: reason || ''});
     e.reversedBy = r.id;
     return `تصحيح قيد: ${e.desc} (${fmt(e.amount)})`;
@@ -603,7 +642,7 @@ function avgRate(db) {
 function ensureReceipts(db) {
   db.receiptSeq = db.receiptSeq || 0; db.voucherSeq = db.voucherSeq || 0;
   db.entries.filter(e => (e.type === 'contribution' || e.type === 'settle') && !e.receiptNo).sort(byDate).forEach(e => { db.receiptSeq++; e.receiptNo = g2h(e.date).y + '/' + String(db.receiptSeq).padStart(3, '0'); });
-  db.entries.filter(e => (e.type === 'withdrawal' || e.type === 'pwithdraw') && !e.receiptNo).sort(byDate).forEach(e => { db.voucherSeq++; e.receiptNo = 'ص-' + g2h(e.date).y + '/' + String(db.voucherSeq).padStart(3, '0'); e.voucher = true; });
+  db.entries.filter(e => (e.type === 'withdrawal' || e.type === 'pwithdraw' || (e.type === 'exitpay' && e.amount > 0)) && !e.receiptNo).sort(byDate).forEach(e => { db.voucherSeq++; e.receiptNo = 'ص-' + g2h(e.date).y + '/' + String(db.voucherSeq).padStart(3, '0'); e.voucher = true; });
 }
 function familyView(db) { const v = clone(db); v.members.forEach(m => delete m.phone); return v; }
 function buildPublic(db) {
@@ -1022,6 +1061,7 @@ function homeBody(S, c) {
     if (pend) h += `<button class="card cardbtn" style="margin-top:14px;border-color:var(--gold)" data-menu="accounts"><span style="font-size:22px">🪪</span><div style="flex:1"><b>${arD(pend)} ${pend === 1 ? 'طلب توثيق' : 'طلبات توثيق'} بانتظارك</b><div class="small muted">أعضاء اختاروا أسماءهم وينتظرون موافقتك</div></div><span class="muted">‹</span></button>`;
     const wq = WREQ.filter(r => r.status === 'pending' || r.status === 'approved').length;
     if (wq) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--gold)" data-menu="wreqs"><span style="font-size:22px">💸</span><div style="flex:1"><b>${arD(wq)} طلب سحب أرباح</b><div class="small muted">بانتظار موافقتك أو تحويلك</div></div><span class="muted">‹</span></button>`;
+    DB.members.filter(m => m.exit && !exitPending(DB, m.id).length && c.M[m.id] && c.M[m.id].cash > 0.001).forEach(m => { h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--gold)" data-mem="${m.id}"><span style="font-size:22px">${m.exit.reason === 'death' ? '🕊️' : '🚪'}</span><div style="flex:1"><b>مستحق ${fmt(c.M[m.id].cash)} ر.س لـ ${esc(m.exit.recipient)}</b><div class="small muted">${m.exit.reason === 'death' ? 'تركة المرحوم' : 'تصفية حساب'} ${esc(m.name)} — استحقت حصته، اضغط للصرف</div></div><span class="muted">‹</span></button>`; });
     const late = lateList(c);
     if (late.length) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-menu="late"><span style="font-size:22px">⚠️</span><div style="flex:1"><b>${arD(late.length)} ${late.length === 1 ? 'عضو متأخر' : 'أعضاء متأخرين'}</b><div class="small muted">أكثر من ٦ أشهر بدون إيداع ولم يكملوا المستهدف</div></div><span class="muted">‹</span></button>`;
   }
@@ -1063,7 +1103,9 @@ function membersBody(c) {
   h += ms.map(m => memCard(m, c)).join('');
   h += `<div class="total-row"><span>إجمالي المساهمات</span><b class="num">${fmt(tot)}${SAR}</b></div>`;
   if (MODE === 'admin') h += `<button class="btn ghost block" style="margin-top:12px" id="addMember">＋ إضافة فرد جديد</button>`;
-  const inactive = DB.members.filter(m => m.active === false);
+  const inactive = DB.members.filter(m => m.active === false && !m.exit), former = DB.members.filter(isExited);
+  if (former.length) h += `<div class="sh" style="margin-top:18px"><span class="orn">◈</span><h2 style="font-size:15px">أعضاء سابقون</h2><span class="cnt">${arD(former.length)}</span></div>` + former.map(m => { const x = c.M[m.id], pend = exitPending(DB, m.id), due = !pend.length && x.cash > 0.001;
+    return `<button class="card cardbtn" style="margin-top:8px;opacity:.9" data-mem="${m.id}"><span style="font-size:20px">${m.exit.reason === 'death' ? '🕊️' : '🚪'}</span><div style="flex:1"><b>${m.exit.reason === 'death' ? 'المرحوم ' : ''}${esc(m.name)}${m.exit.reason === 'death' ? ' رحمه الله' : ''}</b><div class="small muted">${m.exit.reason === 'death' ? 'توفي' : 'خرج'} ${fmtH(m.exit.date)}${MODE === 'admin' ? ' · ' + (due ? '⚠️ مستحق ' + fmt(x.cash) : pend.length ? '⏳ حصة في الاستثمار حتى الاستحقاق' : '✓ تمت التصفية') : ''}</div></div><span class="muted">‹</span></button>`; }).join('');
   if (MODE === 'admin' && inactive.length) h += `<div class="small muted" style="margin-top:12px">أفراد موقوفون: ${inactive.map(m => `<button class="lnk" data-mem="${m.id}">${esc(m.name)}</button>`).join('، ')}</div>`;
   return h + '</div>';
 }
@@ -1074,6 +1116,7 @@ function openMember(id) {
   const parts = DB.investments.filter(i => i.shares && i.shares[id] && i.status !== 'cancelled');
   let h = `<div class="md-head"><div class="md-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}${m.completedRank ? ' · الترتيب ' + arD(m.completedRank) : ''}</span>
   <div class="small muted" style="margin-top:8px">الرصيد الحالي</div><div class="md-bal num">${fmt(x.balance)}${SAR}</div></div>
+  ${m.exit ? exitCard(m, x) : ''}
   <div class="card"><div class="small muted" style="display:flex;justify-content:space-between"><span>التقدم نحو المستهدف (${fmt(t)})</span><b>${arD(pct)}٪</b></div><div class="bar"><i class="${st.cls}" data-w="${pct}"></i></div>
   <div style="margin-top:8px">
   <div class="stat"><span>إجمالي مساهماته</span><b>${fmt(x.contrib)}${SAR}</b></div>
@@ -1095,7 +1138,8 @@ function openMember(id) {
   if (MODE === 'admin') h += `<div class="sec"><div class="sh"><h2 style="font-size:14px">إجراءات المدير</h2></div>
   <div class="btn-row"><button class="btn" id="mDep">＋ إيداع</button><button class="btn ghost" id="mWd">− سحب</button></div>
   ${x.owed ? '<div class="btn-row" style="margin-top:8px"><button class="btn gold" id="mSet">✓ سداد مستحق</button></div>' : ''}
-  <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="mWa">💬 تذكير واتساب</button><button class="btn ghost" id="mEdit">✏️ تعديل</button></div></div>`;
+  <div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="mWa">💬 تذكير واتساب</button><button class="btn ghost" id="mEdit">✏️ تعديل</button></div>
+  ${m.exit ? (x.cash > 0.001 && !exitPending(DB, id).length ? '<div class="btn-row" style="margin-top:8px"><button class="btn gold" id="mExPay">💸 صرف المستحق للمستلم</button></div>' : '') : '<div class="btn-row" style="margin-top:8px"><button class="btn ghost" id="mExit" style="color:var(--bad)">🕊️ تصفية حساب (وفاة / خروج)</button></div>'}</div>`;
   sheet('تفاصيل الفرد', h, (b, close) => {
     requestAnimationFrame(() => $$('.bar>i[data-w]', b).forEach(el => el.style.width = el.dataset.w + '%'));
     $('#cert', b).onclick = () => certificate(m, x);
@@ -1110,6 +1154,8 @@ function openMember(id) {
     const ms = $('#mSet', b); if (ms) ms.onclick = () => { close(); formSettle(id); };
     $('#mWa', b).onclick = () => remind(m, x);
     $('#mEdit', b).onclick = () => { close(); formEditMember(id); };
+    const me = $('#mExit', b); if (me) me.onclick = () => { close(); formExit(id); };
+    const mp = $('#mExPay', b); if (mp) mp.onclick = () => { close(); formExitPay(id); };
   });
 }
 
@@ -1132,7 +1178,7 @@ function ledgerRow(e, forMember) {
 function ledgerBody() {
   let list = DB.entries.slice().sort(byDate).reverse();
   if (ledgerFilter === 'in') list = list.filter(e => IN_TYPES[e.type]);
-  if (ledgerFilter === 'out') list = list.filter(e => ['withdrawal', 'expense', 'pwithdraw', 'claim'].includes(e.type));
+  if (ledgerFilter === 'out') list = list.filter(e => ['withdrawal', 'expense', 'pwithdraw', 'claim', 'exitpay'].includes(e.type));
   if (ledgerFilter === 'inv') list = list.filter(e => e.type === 'invest' || e.type === 'maturity');
   if (ledgerFilter === 'fix') list = list.filter(e => e.type === 'reversal' || e.reversedBy);
   const per = (DB.periods || []).find(p => p.id === ledgerPeriod);
@@ -1460,12 +1506,12 @@ function tafqit(n) {
 }
 function receiptView(eid, offer) {
   const e = DB.entries.find(x => x.id === eid); if (!e || !e.receiptNo) return toast('لا يوجد سند لهذه الحركة', true);
-  const m = DB.members.find(x => x.id === e.memberId) || {name: '—'};
+  const m0 = DB.members.find(x => x.id === e.memberId) || {name: '—'}, m = e.type === 'exitpay' ? Object.assign({}, m0, {name: e.recipient || m0.name}) : m0;
   const after = compute(DB, e.date).M[e.memberId] || {contrib: 0};
   const hal = Math.round((e.amount % 1) * 100);
   const words = 'فقط ' + tafqit(e.amount) + ' ريال سعودي' + (hal ? ' و' + tafqit(hal) + ' هللة' : '') + ' لا غير';
   const V = !!e.voucher, title = V ? 'سند صرف' : 'سند قبض';
-  const what = e.type === 'settle' ? 'سداد مستحق مطالبة' : e.type === 'pwithdraw' ? 'صرف أرباح' : e.type === 'withdrawal' ? 'سحب من رصيده' : 'مساهمة في الصندوق';
+  const what = e.type === 'settle' ? 'سداد مستحق مطالبة' : e.type === 'pwithdraw' ? 'صرف أرباح' : e.type === 'withdrawal' ? 'سحب من رصيده' : e.type === 'exitpay' ? (m0.exit && m0.exit.reason === 'death' ? 'مستحقات المرحوم ' + m0.name : 'تصفية حساب ' + m0.name) : 'مساهمة في الصندوق';
   const lastLine = V ? (e.type === 'pwithdraw' ? `أرباحه المتاحة بعدها: ${fmt(compute(DB, e.date).M[e.memberId] ? compute(DB, e.date).M[e.memberId].pavail : 0)}` : '') : `إجمالي مساهماته بعدها: ${fmt(after.contrib)}`;
   const txt = `🧾 *${title} رقم ${e.receiptNo}*\nصندوق آل مبشر بن عبدالله\n\n${V ? 'صُرف إلى' : 'استلمنا من'}: ${m.name}\nالمبلغ: ${fmt(e.amount)} ريال\n(${words})\nالتاريخ: ${fmtH(e.date)} — ${fmtG(e.date)}\nالبيان: ${what}${e.note ? ' — ' + e.note : ''}${lastLine ? '\n' + lastLine + ' ريال' : ''}\n\nجزاك الله خيرًا 🌿\n${SITE_URL}`;
   const html = `<div class="rcpt"><div class="small muted" style="text-align:center">صندوق آل مبشر بن عبدالله · FAMILY TREASURY</div><h1>${title}</h1><div class="no">رقم ${e.receiptNo}</div>
@@ -1703,6 +1749,56 @@ function formDues() {
   ${claims.length ? `<div class="sh" style="margin-top:16px"><h2 style="font-size:14px">المطالبات</h2></div>` + claims.map(e => `<div class="stat"><span>${esc(e.desc)}<br><span class="small muted">${fmtH(e.date)} · ${esc(e.note || '')}</span></span><b>${fmt(e.amount)}</b></div>`).join('') : ''}`, (b, close) => {
     $$('[data-ds]', b).forEach(x => x.onclick = () => { close(); formSettle(x.dataset.ds); });
     $$('[data-dw]', b).forEach(x => x.onclick = () => { const m = DB.members.find(y => y.id === x.dataset.dw); window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(`السلام عليكم ${m.name} 🌿\nمن صندوق آل مبشر بن عبدالله: عليك مستحق ${fmt(c.M[m.id].owed)} ريال، نصيبك من المطالبة.\nالتفاصيل في حسابك: ${SITE_URL}\nجزاك الله خيرًا.`), '_blank'); });
+  });
+}
+/* ---- member exit / death settlement ---- */
+function exitCard(m, x) {
+  const E = m.exit, pend = exitPending(DB, m.id), paid = DB.entries.filter(e => e.type === 'exitpay' && e.memberId === m.id && isLive(e)).reduce((s, e) => s + e.amount, 0);
+  return `<div class="card" style="margin-top:10px;border-color:var(--gold)"><b>${E.reason === 'death' ? '🕊️ توفي رحمه الله' : '🚪 خرج من الصندوق'} — ${fmtH(E.date)}</b>
+  <div class="stat"><span>المستلم</span><b>${esc(E.recipient)}${E.relation ? ' (' + esc(E.relation) + ')' : ''}</b></div>
+  <div class="stat"><span>صُرف حتى الآن</span><b>${fmt(paid)}${SAR}</b></div>
+  ${pend.length ? `<div class="stat"><span>باقي حصته في الاستثمار</span><b>${fmt(x.inv)}${SAR}</b></div><div class="small muted">تُصرف بعد استحقاق: ${pend.map(i => esc(i.title) + ' (' + fmtH(maturity(i)) + ')').join('، ')} · الأرباح ${E.profitMode === 'stop' ? 'متوقفة من تاريخ ' + (E.reason === 'death' ? 'الوفاة' : 'الخروج') : 'مستمرة حتى الاستحقاق'}</div>` : x.cash > 0.001 ? `<div class="stat"><span>⚠️ مستحق للصرف الآن</span><b style="color:var(--gold2)">${fmt(Math.max(0, x.cash - x.owed))}${SAR}</b></div>` : '<div class="small" style="color:var(--good);margin-top:6px">✓ تمت التصفية بالكامل</div>'}</div>`;
+}
+function formExit(mid) {
+  const m = DB.members.find(x => x.id === mid), c = compute(DB), x = c.M[mid], pend = exitPending(DB, mid);
+  const off = Math.min(x.owed, x.cash), payNow = r2(x.cash - off);
+  const expAt = pend.reduce((s, i) => s + i.shares[mid] + expProfit(i) * i.shares[mid] / i.principal, 0);
+  sheet('🕊️ تصفية حساب ' + esc(m.name), `<div class="f"><label>السبب</label><div class="btn-row"><button class="btn" data-rz="death">🕊️ وفاة</button><button class="btn ghost" data-rz="exit">🚪 خروج من الصندوق</button></div></div>
+  <div class="f"><label id="rl">اسم المستلم (الوكيل أو أحد الورثة)</label><input class="inp" id="rc" placeholder="مثال: فلان بن فلان"></div>
+  <div class="f"><label>صفته</label><div class="btn-row" style="margin-bottom:6px" id="rels"></div><input class="inp" id="rel" placeholder="مثال: ابن، زوجة، وكيل شرعي"></div>
+  <div class="f"><label id="dl">تاريخ الوفاة (هجري)</label>${hInput('d')}</div>
+  ${pend.length ? `<div class="f"><label>أرباحه في الاستثمار القائم</label><label class="part"><input type="radio" name="pm" value="continue" checked><span class="n">تكمل له حتى الاستحقاق</span></label><label class="part"><input type="radio" name="pm" value="stop"><span class="n">تتوقف من هذا التاريخ<small>والباقي يتوزع على بقية المشاركين</small></span></label></div>` : ''}
+  <div class="card"><div class="stat"><span>نقده المتاح</span><b>${fmt(x.cash)}</b></div>
+  ${x.owed ? `<div class="stat"><span>مستحق عليه (يُخصم)</span><b style="color:var(--bad)">−${fmt(off)}</b></div>` : ''}
+  <div class="stat"><span>💸 يُصرف الآن بسند صرف</span><b style="color:var(--good)">${fmt(payNow)}</b></div>
+  ${pend.length ? `<div class="stat"><span>⏳ يُصرف عند الاستحقاق (تقريبًا)</span><b style="color:var(--gold2)">≈ ${fmt(expAt)}</b></div><div class="small muted">${pend.map(i => esc(i.title) + ': حصته ' + fmt(i.shares[mid]) + ' — يستحق ' + fmtH(maturity(i))).join('<br>')}</div>` : ''}
+  ${x.owed > x.cash + 0.001 ? `<div class="small" style="color:var(--bad)">باقي المستحق عليه ${fmt(x.owed - off)} يُخصم من حصته عند الاستحقاق</div>` : ''}</div>
+  <div class="small muted" style="margin:10px 0">العضو ما ينحذف؛ ينتقل لـ«أعضاء سابقون» وسجله كامل محفوظ، ويُغلق دخوله. لا تُكسر أي وديعة.</div>
+  <button class="btn block" id="ok" style="background:var(--bad);color:#fff">تأكيد التصفية</button>`, (b, close) => {
+    let rz = 'death';
+    const rels = {death: ['ابن', 'زوجة', 'أخ', 'وكيل شرعي'], exit: ['نفسه', 'وكيل']};
+    const setR = v => { rz = v; $$('[data-rz]', b).forEach(y => y.className = 'btn' + (y.dataset.rz === v ? '' : ' ghost'));
+      $('#rl', b).textContent = v === 'death' ? 'اسم المستلم (الوكيل أو أحد الورثة)' : 'اسم المستلم';
+      $('#dl', b).textContent = v === 'death' ? 'تاريخ الوفاة (هجري)' : 'تاريخ الخروج (هجري)';
+      if (v === 'exit' && !$('#rc', b).value) { $('#rc', b).value = m.name; $('#rel', b).value = 'نفسه'; } else if (v === 'death' && $('#rc', b).value === m.name) { $('#rc', b).value = ''; $('#rel', b).value = ''; }
+      $('#rels', b).innerHTML = rels[v].map(t => `<button class="btn ghost" data-rl="${t}" style="padding:6px">${t}</button>`).join('');
+      $$('[data-rl]', b).forEach(y => y.onclick = () => { $('#rel', b).value = y.dataset.rl; if (y.dataset.rl === 'نفسه') $('#rc', b).value = m.name; }); };
+    $$('[data-rz]', b).forEach(y => y.onclick = () => setR(y.dataset.rz)); setR('death');
+    $('#ok', b).onclick = () => { const rc = $('#rc', b).value.trim(); if (!rc) return toast('اكتب اسم المستلم', true);
+      const pmEl = $('input[name=pm]:checked', b), args = {mid, reason: rz, recipient: rc, relation: $('#rel', b).value.trim(), date: hVal(b, 'd'), profitMode: pmEl ? pmEl.value : 'continue'};
+      confirmSheet('تأكيد التصفية', `سيتم تصفية حساب «${esc(m.name)}» وصرف ${fmt(payNow)} ر.س لـ ${esc(rc)}${pend.length ? '، وتبقى حصته في الاستثمار حتى الاستحقاق' : ''}. يمكن التراجع بـ«تصحيح» القيد.`, 'تأكيد', async () => {
+        let eid; if (await mutate(db => { const r = A.exitMember(db, args); eid = db.entries[db.entries.length - 1].id; return r; }, 'تصفية حساب')) { close(); if (DEMO || SANDBOX) ensureReceipts(DB); if (payNow > 0) setTimeout(() => receiptView(eid, true), 350); else toast('تمت التصفية ✓'); }
+      }, true); };
+  });
+}
+function formExitPay(mid) {
+  const m = DB.members.find(x => x.id === mid), x = compute(DB).M[mid], off = Math.min(x.owed, x.cash);
+  sheet('💸 صرف مستحق ' + esc(m.name), `<div class="card"><div class="stat"><span>المستلم</span><b>${esc(m.exit.recipient)}${m.exit.relation ? ' (' + esc(m.exit.relation) + ')' : ''}</b></div>
+  <div class="stat"><span>المبلغ المستحق</span><b>${fmt(x.cash)}</b></div>${off ? `<div class="stat"><span>مستحق عليه يُخصم</span><b style="color:var(--bad)">−${fmt(off)}</b></div>` : ''}
+  <div class="stat"><span>يُصرف</span><b style="color:var(--good)">${fmt(x.cash - off)}</b></div></div>
+  <div class="f" style="margin-top:10px"><label>التاريخ</label>${hInput('d')}</div><div class="f"><label>ملاحظة</label><input class="inp" id="n" placeholder="مثال: تحويل بنكي"></div>
+  <button class="btn gold block" id="ok">تسجيل الصرف</button>`, (b, close) => {
+    $('#ok', b).onclick = async () => { let eid; if (await mutate(db => { const r = A.exitPay(db, mid, hVal(b, 'd'), $('#n', b).value.trim()); eid = r.id; return r.detail; }, 'صرف تصفية')) { close(); if (DEMO || SANDBOX) ensureReceipts(DB); setTimeout(() => receiptView(eid, true), 350); } };
   });
 }
 /* ---- profit withdrawal requests ---- */
@@ -2135,7 +2231,7 @@ function formRestore(first) {
 }
 function exportExcel() {
   const c = compute(DB);
-  const mem = DB.members.map(m => ({'الاسم': m.name, 'المساهمات': r2(c.M[m.id].contrib), 'الرصيد': c.M[m.id].balance, 'مستثمر': c.M[m.id].inv, 'نقد': c.M[m.id].cash, 'أرباح محققة': r2(c.M[m.id].profit), 'أرباح متوقعة': r2(c.M[m.id].expected), 'الحالة': m.active === false ? 'موقوف' : 'نشط'}));
+  const mem = DB.members.map(m => ({'الاسم': m.name, 'المساهمات': r2(c.M[m.id].contrib), 'الرصيد': c.M[m.id].balance, 'مستثمر': c.M[m.id].inv, 'نقد': c.M[m.id].cash, 'أرباح محققة': r2(c.M[m.id].profit), 'أرباح متوقعة': r2(c.M[m.id].expected), 'الحالة': m.exit ? (m.exit.reason === 'death' ? 'متوفى' : 'خرج') : m.active === false ? 'موقوف' : 'نشط'}));
   const ent = DB.entries.slice().sort(byDate).map(e => ({'التاريخ الهجري': fmtH(e.date), 'التاريخ الميلادي': e.date, 'النوع': TYPE_LABEL[e.type], 'البيان': e.desc, 'الفرد': e.memberId ? memName(DB, e.memberId) : '', 'المبلغ': e.amount, 'ملاحظة': e.note || '', 'مُصحَّح': e.reversedBy ? 'نعم' : ''}));
   const inv = DB.investments.map(i => ({'الاستثمار': i.title, 'رأس المال': i.principal, 'العائد %': i.rate, 'المدة': i.months, 'البداية': fmtH(i.start), 'الحالة': invState(i).label, 'الربح': r2(i.status === 'completed' ? i.finalProfit : expProfit(i)), 'المشاركون': Object.entries(i.shares).map(([k, v]) => memName(DB, k) + ': ' + v).join(' | ')}));
   const go = () => {
