@@ -426,14 +426,15 @@ const isLive = e => !e.reversedBy && e.type !== 'reversal';
 
 function compute(db, upTo) {
   const M = {};
-  db.members.forEach(m => M[m.id] = {contrib: 0, cash: 0, inv: 0, profit: 0, spent: 0, expected: 0, pused: 0, owed: 0, series: []});
+  db.members.forEach(m => M[m.id] = {contrib: 0, cash: 0, inv: 0, profit: 0, spent: 0, expected: 0, pused: 0, owed: 0, dq: [], series: []});
   let cash = 0, inv = 0, contrib = 0, profit = 0, spent = 0, withdrawn = 0;
   const growth = [];
   const list = db.entries.filter(e => isLive(e) && (!upTo || e.date <= upTo)).sort(byDate);
   for (const e of list) {
     cash += e.cashDelta !== undefined ? e.cashDelta : (IN_TYPES[e.type] ? 1 : -1) * e.amount;
     for (const [k, v] of Object.entries(e.pused || {})) if (M[k]) M[k].pused += v;
-    for (const [k, v] of Object.entries(e.dues || {})) if (M[k]) M[k].owed += v;
+    for (const [k, v] of Object.entries(e.dues || {})) if (M[k]) { M[k].owed += v; const q = M[k].dq;
+      if (v > 0) q.push({d: e.date, v}); else { let r = -v; while (r > 0.001 && q.length) { const t = Math.min(r, q[0].v); q[0].v -= t; r -= t; if (q[0].v < 0.001) q.shift(); } } }
     const touched = new Set();
     for (const [k, v] of Object.entries(e.alloc || {})) if (M[k]) { M[k].cash += v; touched.add(k); if (e.type === 'expense') M[k].spent -= v; }
     for (const [k, v] of Object.entries(e.inv || {})) { inv += v; if (M[k]) M[k].inv += v; }
@@ -456,7 +457,7 @@ function compute(db, upTo) {
     const ep = expProfit(iv); expected += ep;
     for (const [k, s] of Object.entries(iv.shares || {})) if (M[k]) M[k].expected += ep * s / iv.principal;
   });
-  Object.values(M).forEach(x => { x.cash = r2(x.cash); x.inv = r2(x.inv); x.balance = r2(x.cash + x.inv); x.owed = r2(Math.max(0, x.owed)); x.pavail = r2(Math.max(0, Math.min(x.profit - x.pused, x.cash))); });
+  Object.values(M).forEach(x => { x.cash = r2(x.cash); x.inv = r2(x.inv); x.balance = r2(x.cash + x.inv); x.owed = r2(Math.max(0, x.owed)); x.dueBy = x.owed > 0 && x.dq.length ? addMonths(x.dq[0].d, 3) : null; x.overdue = !!(x.dueBy && todayISO() > x.dueBy); x.pavail = r2(Math.max(0, Math.min(x.profit - x.pused, x.cash))); });
   return {M, cash: r2(cash), inv: r2(inv), contrib, profit, spent, withdrawn, expected, assets: r2(cash + inv), total: r2(cash + inv + expected), growth};
 }
 
@@ -496,8 +497,8 @@ function pushEntry(db, e) { e.id = e.id || 'e' + uid(); e.createdAt = Date.now()
 const A = {
   contribution(db, mid, amount, date, note) {
     amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
-    const n = memName(db, mid);
-    pushEntry(db, {date, type: 'contribution', amount, memberId: mid, desc: `مساهمة من ${n}`, note: note || '', alloc: {[mid]: amount}, contrib: {[mid]: amount}});
+    const n = memName(db, mid), ow = compute(db).M[mid].owed, d = r2(Math.min(ow, amount));
+    pushEntry(db, Object.assign({date, type: 'contribution', amount, memberId: mid, desc: `مساهمة من ${n}`, note: (note || '') + (d > 0 ? (note ? ' — ' : '') + `منها ${fmt(d)} سداد مستحق المطالبة` : ''), alloc: {[mid]: amount}, contrib: {[mid]: amount}}, d > 0 ? {dues: {[mid]: -d}} : {}));
     return `مساهمة ${fmt(amount)} من ${n}`;
   },
   withdrawal(db, mid, amount, date, note) {
@@ -546,35 +547,32 @@ const A = {
     if (pool > 0 && rest.length) { const base = rest.reduce((s, k) => s + iv.shares[k], 0); let a2 = 0; rest.forEach((k, i) => { const v = i === rest.length - 1 ? r2(pool - a2) : r2(pool * iv.shares[k] / base); a2 = r2(a2 + v); pr[k] = r2(pr[k] + v); }); }
     if (pool > 0 && !rest.length) { const k = stopped[stopped.length - 1]; pr[k] = r2(pr[k] + pool); pool = 0; }
     ks.forEach(k => alloc[k] = r2(iv.shares[k] + pr[k]));
-    const e = pushEntry(db, {date, type: 'maturity', amount: r2(iv.principal + profit), desc: `استحقاق: ${iv.title}`, note: `رأس المال ${fmt(iv.principal)} + ربح ${fmt(profit)} وُزّع على المشاركين حسب حصصهم` + (pool > 0 ? ` — أرباح المنسحبين بعد تاريخ خروجهم (${fmt(pool)}) وُزّعت على الباقين` : ''), invId: iv.id, alloc, inv, profit: pr});
+    const cc = compute(db), dues = {}, contrib = {}, pused = {}, autoS = [];
+    ks.forEach(k => { const o = cc.M[k] ? cc.M[k].owed : 0, d = r2(Math.min(o, pr[k])); if (d > 0) { dues[k] = -d; contrib[k] = d; pused[k] = d; autoS.push(`${memName(db, k)} ${fmt(d)}`); } });
+    const e = pushEntry(db, {date, type: 'maturity', amount: r2(iv.principal + profit), desc: `استحقاق: ${iv.title}`, note: `رأس المال ${fmt(iv.principal)} + ربح ${fmt(profit)} وُزّع على المشاركين حسب حصصهم` + (pool > 0 ? ` — أرباح المنسحبين بعد تاريخ خروجهم (${fmt(pool)}) وُزّعت على الباقين` : '') + (autoS.length ? ` — سُدّدت مستحقات من الأرباح تلقائيًا: ${autoS.join('، ')}` : ''), invId: iv.id, alloc, inv, profit: pr, dues, contrib, pused});
     iv.status = 'completed'; iv.finalProfit = profit; iv.completedAt = date; iv.maturityEntryId = e.id;
     return `إقفال استثمار ${iv.title} بربح ${fmt(profit)}`;
   },
   claim(db, {reason, amount, date, mids, note}) {
     amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); if (!reason) throw new Error('اكتب سبب المطالبة'); checkDate(db, date);
     if (!mids.length) throw new Error('اختر الأعضاء');
-    const c = compute(db), share = r2(amount / mids.length), alloc = {}, pused = {}, dues = {};
-    let acc = 0, fromProfit = 0;
-    mids.forEach((k, i) => {
-      const sh = i === mids.length - 1 ? r2(amount - acc) : share; acc = r2(acc + sh);
-      const m = db.members.find(x => x.id === k), x = c.M[k], done = x.contrib >= target(db, m);
-      const fp = done ? r2(Math.min(sh, x.pavail)) : 0;
-      if (fp > 0) { alloc[k] = -fp; pused[k] = fp; fromProfit = r2(fromProfit + fp); }
-      if (sh - fp > 0.001) dues[k] = r2(sh - fp);
-    });
-    pushEntry(db, {date, type: 'claim', amount, cashDelta: -fromProfit, desc: `مطالبة: ${reason}`, note: `بالتساوي على ${mids.length} عضو (${fmt(share)} لكل عضو)` + (fromProfit ? ` — ${fmt(fromProfit)} من أرباح المكتملين` : '') + (note ? ' — ' + note : ''), alloc, pused, dues, share});
+    const share = r2(amount / mids.length), alloc = {}, contrib = {}, dues = {};
+    let acc = 0;
+    mids.forEach((k, i) => { const sh = i === mids.length - 1 ? r2(amount - acc) : share; acc = r2(acc + sh); alloc[k] = -sh; contrib[k] = -sh; dues[k] = sh; });
+    pushEntry(db, {date, type: 'claim', amount, desc: `مطالبة: ${reason}`, note: `خُصمت بالتساوي من رصيد ${mids.length} عضو (${fmt(share)} لكل عضو) — يُسدَّد خلال ٣ أشهر` + (note ? ' — ' + note : ''), alloc, contrib, dues, share});
     return `مطالبة ${fmt(amount)}: ${reason}`;
   },
   settle(db, mid, amount, date, note) {
     amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
     const c = compute(db); if (amount > c.M[mid].owed + 0.001) throw new Error(`المستحق عليه ${fmt(c.M[mid].owed)} فقط`);
     const n = memName(db, mid);
-    pushEntry(db, {date, type: 'settle', amount, cashDelta: 0, memberId: mid, desc: `سداد مستحق من ${n}`, note: note || 'سُدّد للمطالبة', dues: {[mid]: -amount}});
+    pushEntry(db, {date, type: 'settle', amount, cashDelta: amount, memberId: mid, desc: `سداد مستحق من ${n}`, note: note || 'سداد نصيبه من المطالبة — رجع لرصيده', dues: {[mid]: -amount}, alloc: {[mid]: amount}, contrib: {[mid]: amount}});
     return `سداد مستحق ${fmt(amount)} من ${n}`;
   },
   pwithdraw(db, mid, amount, date, note, reqId) {
     amount = r2(amount); if (!(amount > 0)) throw new Error('أدخل مبلغًا صحيحًا'); checkDate(db, date);
     const c = compute(db), x = c.M[mid], m = db.members.find(y => y.id === mid);
+    if (x.owed > 0) throw new Error(`عليه مستحق ${fmt(x.owed)} — يُسدَّد أولًا`);
     if (x.contrib < target(db, m)) throw new Error('سحب الأرباح للمكتملين فقط');
     if (amount > x.pavail + 0.001) throw new Error(`أرباحه المتاحة ${fmt(x.pavail)} فقط`);
     const n = memName(db, mid);
@@ -591,7 +589,7 @@ const A = {
   },
   exitPay(db, mid, date, note, first) {
     const m = db.members.find(x => x.id === mid); if (!m || !m.exit) throw new Error('العضو ليس في قائمة التصفية'); checkDate(db, date);
-    const x = compute(db).M[mid], off = r2(Math.min(x.owed, x.cash)), pay = r2(x.cash - off);
+    const x = compute(db).M[mid], off = 0, pay = r2(Math.max(0, x.cash));
     if (!first && !(x.cash > 0.001)) throw new Error('لا يوجد مبلغ مستحق للصرف الآن');
     const to = m.exit.recipient + (m.exit.relation ? ` (${m.exit.relation})` : '');
     const pend = exitPending(db, mid);
@@ -599,8 +597,8 @@ const A = {
     if (off > 0) parts.push(`خُصم مستحق عليه ${fmt(off)}`);
     if (pend.length) parts.push(`باقي حصته في: ${pend.map(i => i.title).join('، ')} — تُصرف عند الاستحقاق`);
     if (note) parts.push(note);
-    const alloc = x.cash > 0.001 ? {[mid]: -x.cash} : {}, dues = off > 0 ? {[mid]: -off} : {};
-    const e = pushEntry(db, {date, type: 'exitpay', amount: pay, cashDelta: -x.cash, memberId: mid, recipient: to, desc: `${m.exit.reason === 'death' ? 'مستحقات المرحوم' : 'تصفية حساب'} ${m.name} ← ${to}`, note: parts.join(' — '), alloc, dues, exitFirst: !!first});
+    const alloc = pay > 0 ? {[mid]: -pay} : {}, dues = first && x.owed > 0 ? {[mid]: -x.owed} : {};
+    const e = pushEntry(db, {date, type: 'exitpay', amount: pay, cashDelta: -pay, memberId: mid, recipient: to, desc: `${m.exit.reason === 'death' ? 'مستحقات المرحوم' : 'تصفية حساب'} ${m.name} ← ${to}`, note: parts.join(' — '), alloc, dues, exitFirst: !!first});
     if (!pend.length) m.exit.settledAt = date;
     return {detail: `صرف ${fmt(pay)} لـ ${to}`, id: e.id};
   },
@@ -1062,6 +1060,8 @@ function homeBody(S, c) {
     const wq = WREQ.filter(r => r.status === 'pending' || r.status === 'approved').length;
     if (wq) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--gold)" data-menu="wreqs"><span style="font-size:22px">💸</span><div style="flex:1"><b>${arD(wq)} طلب سحب أرباح</b><div class="small muted">بانتظار موافقتك أو تحويلك</div></div><span class="muted">‹</span></button>`;
     DB.members.filter(m => m.exit && !exitPending(DB, m.id).length && c.M[m.id] && c.M[m.id].cash > 0.001).forEach(m => { h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--gold)" data-mem="${m.id}"><span style="font-size:22px">${m.exit.reason === 'death' ? '🕊️' : '🚪'}</span><div style="flex:1"><b>مستحق ${fmt(c.M[m.id].cash)} ر.س لـ ${esc(m.exit.recipient)}</b><div class="small muted">${m.exit.reason === 'death' ? 'تركة المرحوم' : 'تصفية حساب'} ${esc(m.name)} — استحقت حصته، اضغط للصرف</div></div><span class="muted">‹</span></button>`; });
+    const od = Object.values(c.M).filter(x => x.overdue).length;
+    if (od) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-menu="dues"><span style="font-size:22px">⛔</span><div style="flex:1"><b>${arD(od)} تأخروا عن سداد المستحق</b><div class="small muted">مرّت ٣ أشهر على المطالبة</div></div><span class="muted">‹</span></button>`;
     const late = lateList(c);
     if (late.length) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-menu="late"><span style="font-size:22px">⚠️</span><div style="flex:1"><b>${arD(late.length)} ${late.length === 1 ? 'عضو متأخر' : 'أعضاء متأخرين'}</b><div class="small muted">أكثر من ٦ أشهر بدون إيداع ولم يكملوا المستهدف</div></div><span class="muted">‹</span></button>`;
   }
@@ -1075,7 +1075,7 @@ function homeBody(S, c) {
   if (nm) h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗣️</span><div style="flex:1"><b>الاجتماع القادم: ${esc(nm.title)}</b><div class="small muted">${fmtH(nm.date)}${nm.time ? ' · ' + fmtTime(nm.time) : ''}${nm.place ? ' · ' + esc(nm.place) : ''}</div></div><span class="muted">‹</span></button>`;
   if (MODE === 'member' && ME && c.M[ME]) {
     const x = c.M[ME];
-    if (x.owed) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-mem="${ME}"><span style="font-size:22px">📋</span><div style="flex:1"><b>عليك مستحق ${fmt(x.owed)} ر.س</b><div class="small muted">نصيبك من مطالبة — تواصل مع أمين الصندوق للسداد</div></div><span class="muted">‹</span></button>`;
+    if (x.owed) h += `<button class="card cardbtn" style="margin-top:10px;border-color:var(--bad)" data-mem="${ME}"><span style="font-size:22px">📋</span><div style="flex:1"><b style="color:var(--bad)">عليك مستحق ${fmt(x.owed)} ر.س</b><div class="small muted">نصيبك من مطالبة — يُسدَّد ${x.overdue ? 'وقد تأخر عن' : 'خلال ٣ أشهر قبل'} ${fmtH(x.dueBy)}</div></div><span class="muted">‹</span></button>`;
     WREQ.filter(r => r.status !== 'done' || Date.now() - (r.doneAt || 0) < 7 * 864e5).forEach(r => { h += `<div class="card" style="margin-top:10px;display:flex;gap:10px;align-items:center"><span style="font-size:22px">💸</span><div style="flex:1"><b>طلب سحب أرباح ${fmt(r.amount)} ر.س</b><div class="small muted">${{pending: '⏳ بانتظار موافقة أمين الصندوق', approved: '✅ تمت الموافقة — جاري التحويل', done: '✓ تم تحويل الأرباح', rejected: '✕ لم يُعتمد' + (r.reason ? ': ' + esc(r.reason) : '')}[r.status]}</div></div></div>`; });
   }
   openPolls().forEach(pl => { h += `<button class="card cardbtn" style="margin-top:10px" data-go="council"><span style="font-size:22px">🗳️</span><div style="flex:1"><b>تصويت مفتوح: ${esc(pl.q)}</b><div class="small muted">يُغلق ${fmtH(pl.closeDate)}</div></div><span class="muted">‹</span></button>`; });
@@ -1090,11 +1090,11 @@ function homeBody(S, c) {
 
 /* ---- members ---- */
 function memCard(m, c) {
-  const x = c.M[m.id], t = target(DB, m), st = statusFor(x.contrib, t), pct = Math.min(100, Math.round(x.contrib / t * 100)), rem = Math.max(0, t - x.contrib);
+  const x = c.M[m.id], t = target(DB, m), st = statusFor(x.contrib, t), pct = Math.max(0, Math.min(100, Math.round(x.contrib / t * 100))), rem = Math.max(0, t - x.contrib);
   const isDone = x.contrib >= t;
   return `<button class="mem" data-mem="${m.id}"><div class="mem-top"><span class="rank ${isDone ? 'done' : ''}">${isDone ? '★' : '·'}</span><div class="mem-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}</span></div>
   <div class="bar"><i class="${st.cls}" data-w="${pct}"></i></div>
-  <div class="mem-foot"><span>ساهم بـ <b class="num">${fmt(x.contrib)}</b>${SAR}</span><span>${rem > 0 ? 'متبقٍ ' + fmt(rem) + SAR : 'رصيده ' + fmt(x.balance) + SAR}</span></div></button>`;
+  <div class="mem-foot"><span>ساهم بـ <b class="num">${fmt(x.contrib)}</b>${SAR}</span><span>${rem > 0 ? 'متبقٍ ' + fmt(rem) + SAR : 'رصيده ' + fmt(x.balance) + SAR}</span></div>${x.owed ? `<div class="small" style="color:var(--bad);margin-top:4px">⚠️ مستحق دفع ${fmt(x.owed)} ر.س ${x.overdue ? '— متأخر' : 'خلال ٣ أشهر'}</div>` : ''}</button>`;
 }
 function membersBody(c) {
   const ms = sortedMembers(DB, c);
@@ -1111,11 +1111,11 @@ function membersBody(c) {
 }
 function openMember(id) {
   const c = compute(DB), m = DB.members.find(x => x.id === id), x = c.M[id], t = target(DB, m);
-  const pct = Math.min(100, Math.round(x.contrib / t * 100)), st = statusFor(x.contrib, t);
+  const pct = Math.max(0, Math.min(100, Math.round(x.contrib / t * 100))), st = statusFor(x.contrib, t);
   const myEntries = DB.entries.filter(e => (e.alloc && e.alloc[id] !== undefined) || (e.dues && e.dues[id] !== undefined) || e.memberId === id || (e.reversalOf && (DB.entries.find(o => o.id === e.reversalOf) || {}).memberId === id)).sort(byDate).reverse();
   const parts = DB.investments.filter(i => i.shares && i.shares[id] && i.status !== 'cancelled');
   let h = `<div class="md-head"><div class="md-name">${esc(m.name)}</div><span class="pill ${st.cls}">${st.label}${m.completedRank ? ' · الترتيب ' + arD(m.completedRank) : ''}</span>
-  <div class="small muted" style="margin-top:8px">الرصيد الحالي</div><div class="md-bal num">${fmt(x.balance)}${SAR}</div></div>
+  <div class="small muted" style="margin-top:8px">الرصيد الحالي</div><div class="md-bal num" ${x.balance < 0 ? 'style="color:var(--bad)"' : ''}>${fmt(x.balance)}${SAR}</div></div>
   ${m.exit ? exitCard(m, x) : ''}
   <div class="card"><div class="small muted" style="display:flex;justify-content:space-between"><span>التقدم نحو المستهدف (${fmt(t)})</span><b>${arD(pct)}٪</b></div><div class="bar"><i class="${st.cls}" data-w="${pct}"></i></div>
   <div style="margin-top:8px">
@@ -1125,8 +1125,8 @@ function openMember(id) {
   <div class="stat"><span>أرباح محققة</span><b style="color:var(--good)">+${fmt(x.profit)}${SAR}</b></div>
   ${x.spent ? `<div class="stat"><span>نصيبه من المصروفات</span><b style="color:var(--bad)">−${fmt(x.spent)}${SAR}</b></div>` : ''}
   <div class="stat"><span>أرباح متوقعة</span><b style="color:var(--gold2)">≈ ${fmt(x.expected)}${SAR}</b></div>
-  ${x.pused ? `<div class="stat"><span>أرباح مصروفة / مستخدمة</span><b>${fmt(x.pused)}${SAR}</b></div>` : ''}
-  ${x.owed ? `<div class="stat"><span>⚠️ مستحق عليه</span><b style="color:var(--bad)">${fmt(x.owed)}${SAR}</b></div>` : ''}</div></div>
+  ${x.pused ? `<div class="stat"><span>أرباح مستخدمة (سحب أو سداد)</span><b>${fmt(x.pused)}${SAR}</b></div>` : ''}
+  ${x.owed ? `<div class="stat"><span style="color:var(--bad)">⚠️ مستحق دفع خلال ٣ أشهر<br><span class="small">${x.overdue ? 'تأخر عن' : 'قبل'} ${fmtH(x.dueBy)}</span></span><b style="color:var(--bad)">${fmt(x.owed)}${SAR}</b></div>` : ''}</div></div>
   ${profitBox(m, x)}
   <div class="sec"><div class="sh"><h2 style="font-size:14px">نمو رصيده</h2></div><div class="card">${lineChart(x.series, 110)}</div></div>
   <div class="sec"><div class="sh"><h2 style="font-size:14px">مشاركته في الاستثمارات</h2></div>${parts.length ? `<div class="card">${parts.map(i => {
@@ -1711,23 +1711,23 @@ function formClaim() {
   sheet('📋 مطالبة بالتساوي', `<div class="f"><label>السبب</label><div class="btn-row" style="margin-bottom:6px">${['دية', 'مساعدة', 'مناسبة'].map(t => `<button class="btn ghost" data-rs="${t}" style="padding:6px">${t}</button>`).join('')}</div><input class="inp" id="r" placeholder="مثال: دية — قضية فلان"></div>
   <div class="f"><label>المبلغ الكلي (ر.س)</label><input class="inp" id="a" type="number" inputmode="decimal"></div><div class="f"><label>التاريخ (هجري)</label>${hInput('d')}</div>
   <div class="f"><label>على من؟</label><div class="btn-row" style="margin-bottom:6px"><button class="btn ghost" id="all" style="padding:6px">الكل</button><button class="btn ghost" id="none" style="padding:6px">لا أحد</button></div>
-  ${ms.map(m => `<label class="part"><input type="checkbox" data-cm="${m.id}" checked><span class="n">${esc(m.name)}<small>${c.M[m.id].contrib >= target(DB, m) ? 'مكتمل · أرباح متاحة ' + fmt(c.M[m.id].pavail) : statusFor(c.M[m.id].contrib, target(DB, m)).label}</small></span><b class="num small" data-cp="${m.id}"></b></label>`).join('')}</div>
+  ${ms.map(m => `<label class="part"><input type="checkbox" data-cm="${m.id}" checked><span class="n">${esc(m.name)}<small>رصيده ${fmt(c.M[m.id].balance)}</small></span><b class="num small" data-cp="${m.id}"></b></label>`).join('')}</div>
   <div class="card small" id="sum" style="margin-bottom:10px"></div>
-  <div class="small muted" style="margin-bottom:10px">المكتمل: يُخصم نصيبه من أرباحه المتاحة والباقي يصير مستحقًا عليه. المستمر والتأسيس: نصيبه كله مستحق عليه، ورصيده لا يُمس.</div>
+  <div class="small muted" style="margin-bottom:10px">ينخصم نصيب كل عضو من رصيده ومساهماته (حتى لو صار بالسالب)، ويصير مستحقًا عليه يسدده خلال ٣ أشهر. أي إيداع منه أو أرباح تجيه تسدد المستحق تلقائيًا أولًا.</div>
   <button class="btn gold block" id="ok">تسجيل المطالبة</button>`, (b, close) => {
     $$('[data-rs]', b).forEach(x => x.onclick = () => { $('#r', b).value = x.dataset.rs + ' — '; $('#r', b).focus(); });
     const sel = () => $$('[data-cm]', b).filter(x => x.checked).map(x => x.dataset.cm);
     const upd = () => {
-      const mids = sel(), amt = +$('#a', b).value || 0, sh = mids.length ? amt / mids.length : 0; let fp = 0, ow = 0;
-      $$('[data-cp]', b).forEach(el => el.textContent = '');
-      mids.forEach(k => { const m = DB.members.find(y => y.id === k), x = c.M[k], p = x.contrib >= target(DB, m) ? Math.min(sh, x.pavail) : 0; fp += p; ow += sh - p; $(`[data-cp="${k}"]`, b).textContent = sh ? (p ? `أرباح ${fmt(p)}` : '') + (sh - p > 0.01 ? (p ? ' + ' : '') + `مستحق ${fmt(sh - p)}` : '') : ''; });
-      $('#sum', b).innerHTML = `${arD(mids.length)} عضو · نصيب كل عضو <b>${fmt(sh)}</b> ر.س<br>من الأرباح: <b>${fmt(fp)}</b> · مستحقات: <b style="color:var(--bad)">${fmt(ow)}</b>`;
+      const mids = sel(), amt = +$('#a', b).value || 0, sh = mids.length ? amt / mids.length : 0; let neg = 0;
+      $$('[data-cp]', b).forEach(el => { el.textContent = ''; el.style.color = ''; });
+      mids.forEach(k => { const after = c.M[k].balance - sh, el = $(`[data-cp="${k}"]`, b); if (sh) { el.textContent = '← ' + fmt(after); if (after < 0) { el.style.color = 'var(--bad)'; neg++; } } });
+      $('#sum', b).innerHTML = `${arD(mids.length)} عضو · نصيب كل عضو <b>${fmt(sh)}</b> ر.س` + (neg ? `<br><span style="color:var(--bad)">${arD(neg)} رصيدهم يصير بالسالب</span>` : '') + (amt > c.cash + 0.001 ? `<br><span style="color:var(--bad)">⚠️ النقد المتاح في الصندوق ${fmt(c.cash)} فقط — الباقي يحتاج إيقاف استثمار</span>` : '');
     };
     $('#a', b).oninput = upd; $$('[data-cm]', b).forEach(x => x.onchange = upd);
     $('#all', b).onclick = () => { $$('[data-cm]', b).forEach(x => x.checked = true); upd(); };
     $('#none', b).onclick = () => { $$('[data-cm]', b).forEach(x => x.checked = false); upd(); };
     upd();
-    $('#ok', b).onclick = async () => { if (await mutate(db => A.claim(db, {reason: $('#r', b).value.trim().replace(/—\s*$/, '').trim(), amount: +$('#a', b).value, date: hVal(b, 'd'), mids: sel()}), 'مطالبة')) { close(); if (Object.values(compute(DB).M).some(x => x.owed > 0)) setTimeout(formDues, 400); } };
+    $('#ok', b).onclick = async () => { if (await mutate(db => A.claim(db, {reason: $('#r', b).value.trim().replace(/—\s*$/, '').trim(), amount: +$('#a', b).value, date: hVal(b, 'd'), mids: sel()}), 'مطالبة')) { close(); setTimeout(formDues, 400); } };
   });
 }
 function formSettle(mid) {
@@ -1745,10 +1745,10 @@ function formSettle(mid) {
 function formDues() {
   const c = compute(DB), L = DB.members.filter(m => c.M[m.id] && c.M[m.id].owed > 0);
   const claims = DB.entries.filter(e => e.type === 'claim' && isLive(e)).sort(byDate).reverse();
-  sheet('📋 المستحقات', `${L.length ? L.map(m => `<div class="acc"><span class="n">${esc(m.name)}<small style="color:var(--bad)">مستحق ${fmt(c.M[m.id].owed)} ر.س</small></span><button class="btn" data-ds="${m.id}">✓ سداد</button><button class="btn ghost" data-dw="${m.id}">💬</button></div>`).join('') : '<div class="empty">لا توجد مستحقات 👏</div>'}
+  sheet('📋 المستحقات', `${L.length ? L.map(m => `<div class="acc"><span class="n">${esc(m.name)}<small style="color:var(--bad)">مستحق ${fmt(c.M[m.id].owed)} ر.س · ${c.M[m.id].overdue ? '⛔ تأخر عن' : 'قبل'} ${fmtH(c.M[m.id].dueBy)}</small></span><button class="btn" data-ds="${m.id}">✓ سداد</button><button class="btn ghost" data-dw="${m.id}">💬</button></div>`).join('') : '<div class="empty">لا توجد مستحقات 👏</div>'}
   ${claims.length ? `<div class="sh" style="margin-top:16px"><h2 style="font-size:14px">المطالبات</h2></div>` + claims.map(e => `<div class="stat"><span>${esc(e.desc)}<br><span class="small muted">${fmtH(e.date)} · ${esc(e.note || '')}</span></span><b>${fmt(e.amount)}</b></div>`).join('') : ''}`, (b, close) => {
     $$('[data-ds]', b).forEach(x => x.onclick = () => { close(); formSettle(x.dataset.ds); });
-    $$('[data-dw]', b).forEach(x => x.onclick = () => { const m = DB.members.find(y => y.id === x.dataset.dw); window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(`السلام عليكم ${m.name} 🌿\nمن صندوق آل مبشر بن عبدالله: عليك مستحق ${fmt(c.M[m.id].owed)} ريال، نصيبك من المطالبة.\nالتفاصيل في حسابك: ${SITE_URL}\nجزاك الله خيرًا.`), '_blank'); });
+    $$('[data-dw]', b).forEach(x => x.onclick = () => { const m = DB.members.find(y => y.id === x.dataset.dw); window.open(`https://wa.me/${(m.phone || '').replace(/\D/g, '')}?text=` + encodeURIComponent(`السلام عليكم ${m.name} 🌿\nمن صندوق آل مبشر بن عبدالله: عليك مستحق ${fmt(c.M[m.id].owed)} ريال، نصيبك من المطالبة، يُسدَّد قبل ${fmtH(c.M[m.id].dueBy)}.\nالتفاصيل في حسابك: ${SITE_URL}\nجزاك الله خيرًا.`), '_blank'); });
   });
 }
 /* ---- member exit / death settlement ---- */
@@ -1757,11 +1757,11 @@ function exitCard(m, x) {
   return `<div class="card" style="margin-top:10px;border-color:var(--gold)"><b>${E.reason === 'death' ? '🕊️ توفي رحمه الله' : '🚪 خرج من الصندوق'} — ${fmtH(E.date)}</b>
   <div class="stat"><span>المستلم</span><b>${esc(E.recipient)}${E.relation ? ' (' + esc(E.relation) + ')' : ''}</b></div>
   <div class="stat"><span>صُرف حتى الآن</span><b>${fmt(paid)}${SAR}</b></div>
-  ${pend.length ? `<div class="stat"><span>باقي حصته في الاستثمار</span><b>${fmt(x.inv)}${SAR}</b></div><div class="small muted">تُصرف بعد استحقاق: ${pend.map(i => esc(i.title) + ' (' + fmtH(maturity(i)) + ')').join('، ')} · الأرباح ${E.profitMode === 'stop' ? 'متوقفة من تاريخ ' + (E.reason === 'death' ? 'الوفاة' : 'الخروج') : 'مستمرة حتى الاستحقاق'}</div>` : x.cash > 0.001 ? `<div class="stat"><span>⚠️ مستحق للصرف الآن</span><b style="color:var(--gold2)">${fmt(Math.max(0, x.cash - x.owed))}${SAR}</b></div>` : '<div class="small" style="color:var(--good);margin-top:6px">✓ تمت التصفية بالكامل</div>'}</div>`;
+  ${pend.length ? `<div class="stat"><span>باقي حصته في الاستثمار</span><b>${fmt(x.inv)}${SAR}</b></div><div class="small muted">تُصرف بعد استحقاق: ${pend.map(i => esc(i.title) + ' (' + fmtH(maturity(i)) + ')').join('، ')} · الأرباح ${E.profitMode === 'stop' ? 'متوقفة من تاريخ ' + (E.reason === 'death' ? 'الوفاة' : 'الخروج') : 'مستمرة حتى الاستحقاق'}</div>` : x.cash > 0.001 ? `<div class="stat"><span>⚠️ مستحق للصرف الآن</span><b style="color:var(--gold2)">${fmt(Math.max(0, x.cash))}${SAR}</b></div>` : '<div class="small" style="color:var(--good);margin-top:6px">✓ تمت التصفية بالكامل</div>'}</div>`;
 }
 function formExit(mid) {
   const m = DB.members.find(x => x.id === mid), c = compute(DB), x = c.M[mid], pend = exitPending(DB, mid);
-  const off = Math.min(x.owed, x.cash), payNow = r2(x.cash - off);
+  const off = 0, payNow = r2(Math.max(0, x.cash));
   const expAt = pend.reduce((s, i) => s + i.shares[mid] + expProfit(i) * i.shares[mid] / i.principal, 0);
   sheet('🕊️ تصفية حساب ' + esc(m.name), `<div class="f"><label>السبب</label><div class="btn-row"><button class="btn" data-rz="death">🕊️ وفاة</button><button class="btn ghost" data-rz="exit">🚪 خروج من الصندوق</button></div></div>
   <div class="f"><label id="rl">اسم المستلم (الوكيل أو أحد الورثة)</label><input class="inp" id="rc" placeholder="مثال: فلان بن فلان"></div>
@@ -1769,10 +1769,10 @@ function formExit(mid) {
   <div class="f"><label id="dl">تاريخ الوفاة (هجري)</label>${hInput('d')}</div>
   ${pend.length ? `<div class="f"><label>أرباحه في الاستثمار القائم</label><label class="part"><input type="radio" name="pm" value="continue" checked><span class="n">تكمل له حتى الاستحقاق</span></label><label class="part"><input type="radio" name="pm" value="stop"><span class="n">تتوقف من هذا التاريخ<small>والباقي يتوزع على بقية المشاركين</small></span></label></div>` : ''}
   <div class="card"><div class="stat"><span>نقده المتاح</span><b>${fmt(x.cash)}</b></div>
-  ${x.owed ? `<div class="stat"><span>مستحق عليه (يُخصم)</span><b style="color:var(--bad)">−${fmt(off)}</b></div>` : ''}
+  ${x.owed ? `<div class="stat"><span>منها مستحق مطالبة (مخصوم مسبقًا)</span><b style="color:var(--bad)">${fmt(x.owed)}</b></div>` : ''}
   <div class="stat"><span>💸 يُصرف الآن بسند صرف</span><b style="color:var(--good)">${fmt(payNow)}</b></div>
   ${pend.length ? `<div class="stat"><span>⏳ يُصرف عند الاستحقاق (تقريبًا)</span><b style="color:var(--gold2)">≈ ${fmt(expAt)}</b></div><div class="small muted">${pend.map(i => esc(i.title) + ': حصته ' + fmt(i.shares[mid]) + ' — يستحق ' + fmtH(maturity(i))).join('<br>')}</div>` : ''}
-  ${x.owed > x.cash + 0.001 ? `<div class="small" style="color:var(--bad)">باقي المستحق عليه ${fmt(x.owed - off)} يُخصم من حصته عند الاستحقاق</div>` : ''}</div>
+  ${x.cash < 0 ? `<div class="small" style="color:var(--bad)">نقده بالسالب ${fmt(-x.cash)} — يُغطّى من حصته عند الاستحقاق</div>` : ''}</div>
   <div class="small muted" style="margin:10px 0">العضو ما ينحذف؛ ينتقل لـ«أعضاء سابقون» وسجله كامل محفوظ، ويُغلق دخوله. لا تُكسر أي وديعة.</div>
   <button class="btn block" id="ok" style="background:var(--bad);color:#fff">تأكيد التصفية</button>`, (b, close) => {
     let rz = 'death';
@@ -1792,7 +1792,7 @@ function formExit(mid) {
   });
 }
 function formExitPay(mid) {
-  const m = DB.members.find(x => x.id === mid), x = compute(DB).M[mid], off = Math.min(x.owed, x.cash);
+  const m = DB.members.find(x => x.id === mid), x = compute(DB).M[mid], off = 0;
   sheet('💸 صرف مستحق ' + esc(m.name), `<div class="card"><div class="stat"><span>المستلم</span><b>${esc(m.exit.recipient)}${m.exit.relation ? ' (' + esc(m.exit.relation) + ')' : ''}</b></div>
   <div class="stat"><span>المبلغ المستحق</span><b>${fmt(x.cash)}</b></div>${off ? `<div class="stat"><span>مستحق عليه يُخصم</span><b style="color:var(--bad)">−${fmt(off)}</b></div>` : ''}
   <div class="stat"><span>يُصرف</span><b style="color:var(--good)">${fmt(x.cash - off)}</b></div></div>
@@ -1806,6 +1806,7 @@ function profitBox(m, x) {
   if (MODE !== 'member' || m.id !== ME) return '';
   const done = x.contrib >= target(DB, m), open = WREQ.some(r => r.status === 'pending' || r.status === 'approved');
   if (!done) return `<div class="card small muted" style="margin-top:10px">💸 يُتاح طلب سحب الأرباح بعد إكمال المستهدف ${fmt(target(DB, m))} ر.س</div>`;
+  if (x.owed) return `<div class="card small" style="margin-top:10px;color:var(--bad)">💸 سحب الأرباح متوقف حتى تسدد المستحق ${fmt(x.owed)} ر.س</div>`;
   if (open) return `<div class="card small" style="margin-top:10px">💸 عندك طلب سحب أرباح قيد المعالجة</div>`;
   return `<div class="card" style="margin-top:10px;display:flex;align-items:center;gap:10px"><div style="flex:1"><b>أرباحك المتاحة للسحب</b><div class="num" style="font-size:20px;font-weight:900;color:var(--good)">${fmt(x.pavail)} ر.س</div></div>${x.pavail > 0 ? '<button class="btn gold" id="pReq">💸 طلب سحب</button>' : ''}</div>`;
 }
